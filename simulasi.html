@@ -1,0 +1,1536 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulasi TTD Supplier</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: satu kolom HP; banner simulasi → chat WA → halaman TTD → hasil PDF */
+:root{
+  --bg:#e9edf2; --card:#ffffff; --fg:#14202e; --muted:#5a6878; --line:#d3dae3;
+  --navy:#1f3a5f; --navy-fg:#ffffff; --soft:#e4e9f0;
+  --wa:#1fa855; --wa-bg:#efe7dc; --wa-in:#ffffff; --wa-out:#d9fdd3; --wa-fg:#111b21;
+  --ok:#1a7f4b; --ok-bg:#e3f3ea; --err:#b42318; --err-bg:#fde8e7; --warn-bg:#fff4dc; --warn:#7a4b00;
+  --pad-bg:#ffffff; --ink:#0b1b33;
+  --f-ui:"Plus Jakarta Sans",-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f151d; --card:#18212c; --fg:#e7edf4; --muted:#9aa8b8; --line:#2b3746;
+  --navy:#4f7fbf; --navy-fg:#ffffff; --soft:#243041;
+  --wa:#25c063; --wa-bg:#0b141a; --wa-in:#202c33; --wa-out:#005c4b; --wa-fg:#e9edef;
+  --ok:#5fd394; --ok-bg:#163527; --err:#ff9b8f; --err-bg:#3a1b1a; --warn-bg:#3a2d12; --warn:#f2c46b;
+  --pad-bg:#ffffff; --ink:#0b1b33; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f151d; --card:#18212c; --fg:#e7edf4; --muted:#9aa8b8; --line:#2b3746;
+  --navy:#4f7fbf; --navy-fg:#ffffff; --soft:#243041;
+  --wa:#25c063; --wa-bg:#0b141a; --wa-in:#202c33; --wa-out:#005c4b; --wa-fg:#e9edef;
+  --ok:#5fd394; --ok-bg:#163527; --err:#ff9b8f; --err-bg:#3a1b1a; --warn-bg:#3a2d12; --warn:#f2c46b;
+  --pad-bg:#ffffff; --ink:#0b1b33; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-ui);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 48px}
+.wrap{max-width:620px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.sim{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:13.5px;display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.sim b{font-weight:700}
+.steps{display:flex;gap:6px}
+.steps span{flex:1;height:5px;border-radius:9px;background:var(--line)}
+.steps span.on{background:var(--navy)}
+.card{background:var(--card);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pill{align-self:flex-start;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy-fg);background:var(--navy);padding:3px 10px;border-radius:999px}
+h2{margin:0;font-size:20px;font-weight:800;letter-spacing:.02em;text-wrap:balance}
+.muted{color:var(--muted);font-size:13px}
+p{margin:0}
+table{width:100%;border-collapse:collapse}
+.info td{padding:3px 0;vertical-align:top;font-size:14px}
+.info td:first-child{color:var(--muted);width:40%;padding-right:8px}
+.tblwrap{overflow-x:auto}
+.items th{background:var(--soft);color:var(--fg);font-size:12px;padding:7px 6px;text-align:left;font-weight:700}
+.items td{border-bottom:1px solid var(--line);padding:7px 6px;font-size:13px;font-variant-numeric:tabular-nums}
+.r{text-align:right!important;white-space:nowrap}.c{text-align:center!important}
+.tot td{border-bottom:none;font-weight:700}
+ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.padhead{display:flex;justify-content:space-between;align-items:center;gap:8px;font-weight:700;font-size:14px}
+canvas{width:100%;height:170px;border:2px dashed var(--muted);border-radius:12px;background:var(--pad-bg);touch-action:none;display:block}
+canvas.signed{border-style:solid;border-color:var(--navy)}
+.hint{font-size:12.5px;color:var(--muted)}
+.btn{appearance:none;border:none;border-radius:11px;padding:13px 16px;font:600 15px var(--f-ui);cursor:pointer;width:100%;text-align:center;text-decoration:none;display:block}
+.btn:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.btn-primary{background:var(--navy);color:var(--navy-fg)}
+.btn-wa{background:var(--wa);color:#fff}
+.btn-ghost{background:var(--soft);color:var(--fg)}
+.btn-sm{width:auto;padding:6px 12px;font-size:13px;border-radius:8px}
+.btn:disabled{opacity:.55;cursor:default}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:14px}
+.check input{width:20px;height:20px;margin-top:1px;flex:none;accent-color:var(--navy)}
+.msg{padding:10px 12px;border-radius:9px;font-size:14px}
+.msg.err{background:var(--err-bg);color:var(--err)}
+.msg.ok{background:var(--ok-bg);color:var(--ok)}
+/* WA mock */
+.wa{background:var(--wa-bg);border-radius:14px;overflow:hidden;color:var(--wa-fg)}
+.wa-top{background:var(--wa);color:#fff;padding:10px 14px;display:flex;align-items:center;gap:10px;font-weight:700}
+.wa-ava{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.25);display:grid;place-items:center;font-size:13px}
+.wa-top small{display:block;font-weight:400;opacity:.85;font-size:12px}
+.wa-body{padding:12px;display:flex;flex-direction:column;gap:8px}
+.bub{max-width:86%;padding:8px 10px 6px;border-radius:10px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.bub.in{background:var(--wa-in);align-self:flex-start;border-top-left-radius:2px}
+.bub.out{background:var(--wa-out);align-self:flex-end;border-top-right-radius:2px}
+.bub .t{display:block;text-align:right;font-size:11px;opacity:.6;margin-top:2px}
+.bub a.lnk{color:#2f7fd8;text-decoration:underline;cursor:pointer}
+.doc{display:flex;gap:10px;align-items:center;background:rgba(0,0,0,.06);border-radius:8px;padding:8px;white-space:normal}
+.doc .ic{width:34px;height:40px;border-radius:4px;background:#e2463b;color:#fff;font-size:10px;font-weight:800;display:grid;place-items:center;flex:none}
+.done-ic{width:56px;height:56px;border-radius:50%;background:var(--ok-bg);color:var(--ok);display:grid;place-items:center;font-size:28px;font-weight:800;align-self:center}
+.center{text-align:center}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>.btn{flex:1;min-width:140px}
+#paper{border-radius:10px;overflow:hidden}
+@media (prefers-reduced-motion:no-preference){.card,.wa{animation:in .25s ease-out}@keyframes in{from{transform:translateY(6px)}to{transform:none}}}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+.fld input,.fld select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;font:15px var(--f-ui);background:var(--card);color:var(--fg)}
+.fld input:focus,.fld select:focus{outline:2px solid var(--navy);outline-offset:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stack{display:flex;flex-direction:column;gap:8px}
+.it{border:1px solid var(--line);border-radius:11px;padding:10px;position:relative;display:flex;flex-direction:column;gap:8px}
+.g-it{display:grid;grid-template-columns:1fr 64px;gap:8px;padding-right:22px}
+.g-it2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.i-s{font-size:13px;color:var(--muted);padding-bottom:12px;font-variant-numeric:tabular-nums}
+.x{position:absolute;top:4px;right:6px;border:none;background:none;font-size:20px;color:var(--muted);cursor:pointer;line-height:1;padding:4px}
+.sumrow{display:flex;justify-content:space-between;font-size:15px;font-variant-numeric:tabular-nums}
+.sumrow.big{font-weight:800;font-size:17px;border-top:1px solid var(--line);padding-top:10px}
+#app{display:flex;flex-direction:column;gap:14px}
+.linkbox{word-break:break-all;background:var(--soft);border-radius:9px;padding:10px;font-size:13px}
+.badge{display:inline-block;background:var(--warn-bg);color:var(--warn);font-weight:700;border-radius:999px;padding:2px 9px;font-size:12px}
+.paste{border:2px dashed var(--navy)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:999px;padding:6px 12px;font:600 13px var(--f-ui);cursor:pointer}
+.chip.on{background:var(--navy);color:var(--navy-fg);border-color:var(--navy)}
+.chip:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+textarea#f_paste{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font:12.5px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--card);color:var(--fg);resize:vertical;min-width:0}
+.msg.warn{background:var(--warn-bg);color:var(--warn);margin-top:8px}
+.bm{border:2px solid var(--navy)}
+details.card>summary{cursor:pointer;list-style:none}
+details.card>summary::-webkit-details-marker{display:none}
+details.card:not([open]){gap:0}
+.demo-note{font-style:italic}
+.modes{display:flex;flex-direction:column;gap:6px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;background:var(--soft);padding:4px;border-radius:12px}
+.seg-b{appearance:none;border:none;background:transparent;color:var(--fg);font:600 13.5px var(--f-ui);padding:9px 4px;border-radius:9px;cursor:pointer}
+.seg-b.on{background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.12);color:var(--navy)}
+.seg-b:focus-visible,.tx:focus-visible,.cs:focus-visible,.linkbtn:focus-visible{outline:3px solid var(--navy);outline-offset:2px}
+.linkbtn{appearance:none;border:none;background:none;color:var(--muted);font:600 12.5px var(--f-ui);text-decoration:underline;cursor:pointer;align-self:center;padding:2px}
+.ttl{font-weight:800;font-size:17px;display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.cnt{font-size:12.5px;font-weight:600;color:var(--muted)}
+.search{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:11px;padding:0 12px;background:var(--card)}
+.search input{border:none;outline:none;background:transparent;color:var(--fg);font:15px var(--f-ui);padding:12px 0;width:100%;min-width:0}
+.txlist{display:flex;flex-direction:column;gap:6px}
+.txlist.short{max-height:420px;overflow:auto}
+.daylbl{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:6px}
+.tx{appearance:none;display:flex;justify-content:space-between;gap:10px;align-items:center;text-align:left;width:100%;border:1px solid var(--line);background:var(--card);color:var(--fg);border-radius:12px;padding:11px 12px;cursor:pointer;font:inherit}
+.tx:active{transform:scale(.99)}
+.tx-l,.tx-r{display:flex;flex-direction:column;gap:3px;min-width:0}
+.tx-r{align-items:flex-end;flex:none}
+.tx-name{font-weight:700;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tx-meta{font-size:12px;color:var(--muted)}
+.tx-tot{font-weight:800;font-size:14px;font-variant-numeric:tabular-nums}
+.tag{font-size:10.5px;font-weight:700;border-radius:999px;padding:2px 8px}
+.tag-mp{background:var(--warn-bg);color:var(--warn)}
+.tag-ln{background:var(--ok-bg);color:var(--ok)}
+.empty{color:var(--muted);font-size:13.5px;padding:12px 0;text-align:center}
+.sumc{display:flex;flex-direction:column;gap:8px}
+.sum-name{font-weight:800;font-size:18px;line-height:1.25}
+.sum-items{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.sum-items.compact{max-height:210px;overflow:auto}
+.sum-it{display:grid;grid-template-columns:1fr auto auto;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:start}
+.sum-it .q{color:var(--muted)}.sum-it .s{font-variant-numeric:tabular-nums;white-space:nowrap}
+.sum-tot{display:flex;justify-content:space-between;font-size:16px;padding-top:2px}
+.inp{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.flbl{font-size:13px;color:var(--muted)}
+.chipsel{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cs{appearance:none;border:1.5px solid var(--line);background:var(--card);color:var(--fg);border-radius:11px;padding:12px 8px;font:600 14px var(--f-ui);cursor:pointer}
+.cs.on{border-color:var(--navy);background:var(--navy);color:var(--navy-fg)}
+.kfix{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px}
+#sheetwrap{position:fixed;inset:0;z-index:50}
+#sheetwrap .dim{position:absolute;inset:0;background:rgba(10,18,30,.45);opacity:0;transition:opacity .2s}
+#sheetwrap .sheet{position:absolute;left:0;right:0;bottom:0;max-height:88%;overflow:auto;background:var(--card);border-radius:20px 20px 0 0;padding:10px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;transform:translateY(100%);transition:transform .25s ease-out;max-width:620px;margin:0 auto}
+#sheetwrap.open .dim{opacity:1}#sheetwrap.open .sheet{transform:none}
+.grab{width:40px;height:5px;border-radius:9px;background:var(--line);align-self:center}
+.xbtn{position:absolute;top:8px;right:12px;border:none;background:none;font-size:26px;color:var(--muted);cursor:pointer}
+.wiz{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.wz{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--muted);text-align:center}
+.wz span{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--soft);color:var(--muted);font-weight:800}
+.wz.on{color:var(--navy)}.wz.on span{background:var(--navy);color:var(--navy-fg)}
+.row2b{display:grid;grid-template-columns:1fr 2fr;gap:8px}
+.mini{background:var(--soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.picked{appearance:none;display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid var(--navy);background:var(--card);color:var(--fg);border-radius:12px;padding:10px 12px;font:inherit;cursor:pointer}
+.chg{color:var(--navy);font-weight:700;font-size:13px}
+.stickybar{position:sticky;bottom:0;display:flex;justify-content:space-between;align-items:center;gap:12px;background:var(--card);border-radius:14px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));box-shadow:0 -4px 18px rgba(0,0,0,.12);font-variant-numeric:tabular-nums}
+.stickybar .btn{width:auto;padding:12px 22px}
+.demo-pick{display:flex;flex-direction:column;gap:6px;background:var(--warn-bg);border-radius:10px;padding:8px 10px;font-size:12.5px;color:var(--warn)}
+.seg2,.seg3{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--soft);padding:4px;border-radius:11px}
+.s2,.s3{appearance:none;border:none;background:transparent;color:var(--fg);font:600 13px var(--f-ui);padding:9px 4px;border-radius:8px;cursor:pointer}
+.s2.on,.s3.on{background:var(--card);color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.s3 b{display:inline-block;min-width:20px;padding:0 6px;margin-left:4px;border-radius:999px;background:var(--navy);color:var(--navy-fg);font-size:11.5px}
+.tag-done{background:var(--ok-bg);color:var(--ok)}
+.tx-done{border-color:var(--ok);background:color-mix(in srgb,var(--ok-bg) 45%,var(--card))}
+.pull-space{height:150px}
+.pull{position:fixed;left:0;right:0;bottom:0;z-index:20;max-width:620px;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;box-shadow:0 -8px 28px rgba(0,0,0,.18);display:flex;flex-direction:column;transition:height .25s cubic-bezier(.3,.1,.2,1)}
+.pull.dragging{transition:none}
+.pull-h{flex:none;padding:10px 16px 8px;cursor:grab;touch-action:none;user-select:none;border-bottom:1px solid var(--line)}
+.grab2{width:52px;height:6px;border-radius:9px;background:var(--muted);opacity:.55;margin:0 auto 6px}
+.pull-t{text-align:center;font-size:12.5px;color:var(--muted);font-weight:600}
+.pull-c{flex:none;display:flex;flex-direction:column;gap:8px;padding:8px max(16px,env(safe-area-inset-left,0px)) 4px}
+.pull-c .search{margin:0}
+.pull-b{flex:1;overflow:auto;padding:6px max(16px,env(safe-area-inset-left,0px)) calc(16px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:6px;overscroll-behavior:contain}
+.geser{gap:8px}
+.dates{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.dates::-webkit-scrollbar{display:none}
+.dp{appearance:none;flex:none;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:64px;border:1.5px solid var(--line);background:var(--card);color:var(--fg);border-radius:12px;padding:6px 8px;font:12px var(--f-ui);cursor:pointer}
+.dp b{font-size:14px}.dp small{color:var(--muted)}
+.dp.on{border-color:var(--navy);background:var(--navy);color:var(--navy-fg)}.dp.on small{color:var(--navy-fg);opacity:.8}
+.pages{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;gap:0}
+.pages::-webkit-scrollbar{display:none}
+.page{flex:0 0 100%;scroll-snap-align:start;display:flex;flex-direction:column;gap:6px;max-height:62vh;overflow-y:auto;padding:0 2px}
+.tx-direct{border-left:4px solid var(--ok)}
+.dp i{font-style:normal;color:var(--err);font-weight:700}.dp.on i{color:#ffd6d2}
+.seg2.three{grid-template-columns:repeat(3,1fr)}
+.warnbox{border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px;border:1.5px solid}
+.warnbox.w1{background:var(--warn-bg);color:var(--warn);border-color:var(--warn)}
+.warnbox.w2,.warnbox.w3{background:var(--err-bg);color:var(--err);border-color:var(--err)}
+.wb-t{font-weight:800;font-size:15px}.wb-s{font-size:13px}
+.wb-a{display:flex;gap:8px;flex-wrap:wrap}
+.wb-btn{background:var(--err);color:#fff}
+.warnbox.w1 .wb-btn{background:var(--warn);color:#fff}
+.age{display:inline-block;margin-top:3px;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;width:max-content}
+.age.w1{background:var(--warn-bg);color:var(--warn)}.age.w2{background:#fde3cf;color:#9a3d00}.age.w3{background:var(--err-bg);color:var(--err)}
+.tx.w3{border-left-color:var(--err);border-color:var(--err)}.tx.w2{border-left-color:#d9822b}
+.warnpill{border:none;background:var(--err);color:#fff;font:700 12px var(--f-ui);border-radius:999px;padding:5px 10px;cursor:pointer}
+#popwarn{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px}
+#popwarn .dim{position:absolute;inset:0;background:rgba(10,18,30,.55)}
+#popwarn .pop{position:relative;background:var(--card);color:var(--fg);border-radius:18px;padding:18px 16px;max-width:420px;width:100%;max-height:86vh;overflow:auto;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.pop-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;font-size:28px;font-weight:900;margin:0 auto;color:#fff;background:var(--err)}
+.pop-ic.w1{background:var(--warn)}
+.pop-list{display:flex;flex-direction:column;gap:6px}
+.pop-it{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;padding:9px 10px;font-size:13.5px}
+.pop-it>div{min-width:0}.pop-it b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pop-it .btn{flex:none}
+.kitbtn{width:100%;margin:6px 0}
+.kitvid{border-radius:12px;overflow:hidden;background:#000;width:min(200px,55vw);margin:10px auto}
+.kitvid video{width:100%;display:block;max-height:50vh}
+#kMsg,#kWa{width:100%;box-sizing:border-box;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font:15px/1.5 inherit;font-family:inherit;background:var(--card);color:var(--fg);resize:vertical}
+.kitgo{width:100%;font-size:16px;padding:14px;margin-top:2px}
+#kflow{position:fixed;inset:0;z-index:200}
+.kf-dim{position:absolute;inset:0;background:rgba(0,0,0,.45)}
+.kf-share{position:absolute;left:0;right:0;bottom:0;background:var(--card);color:var(--fg);border-radius:18px 18px 0 0;padding:10px 16px 22px;max-width:520px;margin:0 auto}
+.kf-t{font-weight:700;margin:6px 0 10px}
+.kf-file{display:flex;gap:10px;align-items:center;background:var(--soft);border-radius:12px;padding:8px;margin-bottom:14px}
+.kf-file video{width:42px;height:64px;object-fit:cover;border-radius:6px;background:#000}
+.kf-apps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 6px}
+.kf-app{appearance:none;border:0;background:none;color:var(--fg);font:12.5px/1.3 inherit;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;padding:4px}
+.kf-app span{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:20px}
+.kf-app.off{opacity:.45;cursor:default}
+.kf-app:not(.off) span{box-shadow:0 0 0 3px var(--card),0 0 0 6px #25d366;animation:kfp 1.4s ease-in-out infinite}
+@keyframes kfp{50%{box-shadow:0 0 0 3px var(--card),0 0 0 9px rgba(37,211,102,.35)}}
+@media (prefers-reduced-motion:reduce){.kf-app:not(.off) span{animation:none}}
+.kf-full{position:absolute;inset:0;background:var(--wa-bg);color:var(--wa-fg);display:flex;flex-direction:column;max-width:520px;margin:0 auto}
+.kf-bar{background:#075e54;color:#fff;display:flex;align-items:center;gap:10px;padding:12px 12px}
+.kf-back{appearance:none;border:0;background:none;color:#fff;font-size:22px;cursor:pointer;padding:2px 8px}
+.kf-list{background:#fff;flex:1;overflow:auto}
+.kf-c{appearance:none;border:0;border-bottom:1px solid #eee;background:#fff;color:#111b21;width:100%;display:flex;gap:12px;align-items:center;padding:12px 16px;text-align:left;font:15px/1.35 inherit;font-family:inherit;cursor:pointer}
+.kf-c small{color:#667781}
+.kf-c:first-child{background:#e7f8ee}
+.kf-av{width:42px;height:42px;border-radius:50%;background:#cfd8dc;color:#37474f;display:grid;place-items:center;font-weight:700;flex:none}
+.kf-chat{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.kf-prev{background:#000;border-radius:10px;overflow:hidden;width:min(200px,55vw);aspect-ratio:9/16;margin:0 auto}
+.kf-prev video{width:100%;height:100%;object-fit:contain}
+.kf-cap{background:#fff;border-radius:10px;padding:10px 12px;font-size:14.5px;line-height:1.45}
+.kf-send{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:#f0f2f5}
+.kf-sbtn{appearance:none;border:0;width:52px;height:52px;border-radius:50%;background:#25d366;color:#fff;font-size:20px;cursor:pointer;flex:none;box-shadow:0 0 0 0 rgba(37,211,102,.5);animation:kfs 1.4s infinite}
+@keyframes kfs{50%{box-shadow:0 0 0 8px rgba(37,211,102,.25)}}
+@media (prefers-reduced-motion:reduce){.kf-sbtn{animation:none}}
+.kf-bub{align-self:flex-end;background:var(--wa-out);border-radius:10px 2px 10px 10px;padding:4px;max-width:78%;width:240px}
+.kf-bub video{width:100%;aspect-ratio:9/16;object-fit:contain;background:#000;border-radius:8px;display:block}
+.kf-btxt{padding:6px 6px 0;font-size:14.5px;line-height:1.45}
+.kf-time{text-align:right;font-size:11px;color:#53bdeb;padding:0 6px 2px}
+.kf-done{background:#fff;padding:12px 14px;font-size:14px;display:flex;flex-direction:column;gap:8px}
+.rekbox{background:var(--soft);border-radius:12px;padding:10px 12px 12px;margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.rekttl{font-weight:700;font-size:14px}
+.rekauto{font-size:12px;font-weight:600;color:var(--ok);background:var(--ok-bg);border-radius:99px;padding:1px 8px;margin-left:4px}
+.rek2{display:grid;grid-template-columns:1fr 1.3fr;gap:8px}
+.rek2>*{min-width:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="sim"><div><b>Mode simulasi.</b> Kamu sekarang berperan sebagai <b id="role">Admin PGNet</b>. Tidak ada data yang tersimpan atau terkirim.</div><button class="btn btn-ghost btn-sm" id="reset" type="button">Ulangi</button></div>
+  <div class="steps" aria-hidden="true"><span id="s1" class="on"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span><span id="s5"></span><span id="s6"></span></div>
+  <div id="app"></div>
+</div>
+<script>
+var PDFLIB=(function(){
+/**
+ * NOTA & SURAT PERNYATAAN TRANSAKSI — PGNet
+ * -------------------------------------------------------------
+ * Alur:
+ *  1. Admin buka web app (tanpa parameter) → login PIN → isi nota
+ *     (tanggal, supplier, rekening, barang, kanal transaksi).
+ *     Link HANYA dikirim jika barang sudah dites normal & sudah ditransfer lunas.
+ *  2. Sistem membuat LINK khusus → dikirim ke supplier via WA.
+ *  3. Supplier buka link → lihat Nota + Surat Pernyataan →
+ *     tanda tangan 2x → PDF dibuat, disimpan di Drive,
+ *     lalu supplier kirim PDF ke WA PGNet.
+ *
+ * Pemasangan: jalankan fungsi setup() sekali, lalu Deploy sebagai Web App
+ * (Execute as: Me, Who has access: Anyone). Lihat CARA-PASANG.txt.
+ */
+
+const CONFIG = {
+  NAMA_TOKO: 'PGNet',
+  WA_PGNET: '6289605345210',      // 089605345210
+  ADMIN_PIN: '1234',               // ← GANTI PIN ADMIN
+  KOTA: 'Bogor',
+  PDF_LINK_PUBLIC: true,           // true = link PDF bisa dibuka siapa saja yg punya link
+  NAMA_FOLDER: 'Nota & Surat Pernyataan PGNet',
+  NAMA_SPREADSHEET: 'Nota & Surat Pernyataan Transaksi',
+
+  // --- Sumber data: tab Barang Masuk (spreadsheet TRANSAKSI) ---
+  BM_SPREADSHEET_ID: '1dg3eiQJxmiccOuBAIyOzCfBzzGricgeFiiykZZugTOw',
+  BM_SHEET: 'Barang Masuk',
+  BM_START: '2026-11-01',          // hanya transaksi mulai tanggal ini
+  CACHE_TTL: 300,                  // 5 menit
+};
+
+const KANAL_LIST = ['Marketplace', 'Datang Langsung', 'WhatsApp'];
+
+const SHEET_NAME = 'Transaksi';
+const HEADERS = [
+  'ID', 'Token', 'No Nota', 'Tanggal', 'Nama Supplier', 'No WA Supplier',
+  'Nama Rekening', 'Bank', 'No Rekening', 'Kanal', 'No Transaksi Marketplace',
+  'Keterangan', 'Items (JSON)', 'Total',
+  'Status', 'Dibuat', 'Ditandatangani', 'Link PDF',
+  'Ref PUR', 'Subtotal Barang'
+];
+const COL = HEADERS.reduce((o, h, i) => (o[h] = i, o), {});
+
+const STATUS_MENUNGGU = 'Menunggu TTD';
+const STATUS_SELESAI = 'Sudah TTD';
+
+/* ============================== SETUP ============================== */
+
+function setup() {
+  const props = PropertiesService.getScriptProperties();
+  let ssId = props.getProperty('SS_ID');
+  let ss;
+  if (ssId) {
+    ss = SpreadsheetApp.openById(ssId);
+  } else {
+    try { ss = SpreadsheetApp.getActiveSpreadsheet(); } catch (e) { ss = null; }
+    if (!ss) ss = SpreadsheetApp.create(CONFIG.NAMA_SPREADSHEET);
+    props.setProperty('SS_ID', ss.getId());
+  }
+  let sh = ss.getSheetByName(SHEET_NAME);
+  if (!sh) sh = ss.insertSheet(SHEET_NAME);
+  sh.getRange(1, 1, sh.getMaxRows(), HEADERS.length).setNumberFormat('@'); // simpan semua sebagai teks
+  sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#1f3a5f').setFontColor('#ffffff');
+  sh.setFrozenRows(1);
+
+  if (!props.getProperty('FOLDER_ID')) {
+    const folder = DriveApp.createFolder(CONFIG.NAMA_FOLDER);
+    props.setProperty('FOLDER_ID', folder.getId());
+  }
+  Logger.log('Spreadsheet: ' + ss.getUrl());
+  Logger.log('Folder PDF : ' + DriveApp.getFolderById(props.getProperty('FOLDER_ID')).getUrl());
+}
+
+let SHEET_CACHE_ = null;
+function getSheet_() {
+  if (SHEET_CACHE_) return SHEET_CACHE_;
+  const id = PropertiesService.getScriptProperties().getProperty('SS_ID');
+  if (!id) throw new Error('Belum setup. Jalankan fungsi setup() dulu di editor Apps Script.');
+  const sh = SpreadsheetApp.openById(id).getSheetByName(SHEET_NAME);
+  // pastikan judul kolom baru (Ref PUR, Subtotal Barang) ada — 1x baca/tulis per rentang
+  const head = sh.getRange(1, 1, 1, HEADERS.length).getDisplayValues()[0];
+  if (head.join('|') !== HEADERS.join('|')) {
+    sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS]).setFontWeight('bold').setBackground('#1f3a5f').setFontColor('#ffffff');
+  }
+  SHEET_CACHE_ = sh;
+  return sh;
+}
+
+function getFolder_() {
+  const id = PropertiesService.getScriptProperties().getProperty('FOLDER_ID');
+  return DriveApp.getFolderById(id);
+}
+
+/* ============================== WEB APP ============================== */
+
+function doGet(e) {
+  const token = e && e.parameter && e.parameter.t;
+  let t;
+  if (token) {
+    const trx = findByToken_(String(token));
+    t = HtmlService.createTemplateFromFile('Sign');
+    t.payload = safeJson_(trx ? publicView_(trx) : null);
+  } else {
+    t = HtmlService.createTemplateFromFile('Admin');
+    t.payload = safeJson_({ kanal: KANAL_LIST, url: webAppUrl_(), start: CONFIG.BM_START });
+  }
+  t.cfg = safeJson_({ nama: CONFIG.NAMA_TOKO, wa: CONFIG.WA_PGNET, kota: CONFIG.KOTA });
+  return t.evaluate()
+    .setTitle(token ? 'Nota & Surat Pernyataan' : 'Admin Nota ' + CONFIG.NAMA_TOKO)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1, maximum-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+/* ============================== ADMIN API ============================== */
+
+function checkPin_(pin) {
+  if (String(pin) !== String(CONFIG.ADMIN_PIN)) throw new Error('PIN salah.');
+}
+
+function adminLogin(pin) {
+  checkPin_(pin);
+  return true;
+}
+
+function createTrx(pin, d) {
+  checkPin_(pin);
+  d = d || {};
+  if (d.konfirmasi !== true) throw new Error('Centang konfirmasi: barang sudah dites normal & sudah ditransfer.');
+  const token = /^[a-z0-9]{16,40}$/.test(String(d.token || '')) ? String(d.token) : Utilities.getUuid().replace(/-/g, '').slice(0, 20);
+  let rec;
+  if (d.pur) {
+    // --- dari Barang Masuk: server penentu akhir (data barang diambil ulang dari sumber) ---
+    const tx = findBMTx_(String(d.pur));
+    if (!tx) throw new Error('Transaksi ' + d.pur + ' tidak ditemukan di Barang Masuk (mulai ' + CONFIG.BM_START + ').');
+    const info = deriveBM_(tx);
+    let kanal = info.kanal;
+    if (!kanal) {
+      if (['WhatsApp', 'Datang Langsung'].indexOf(d.kanal) < 0) throw new Error('Pilih kanal: WhatsApp atau Datang Langsung.');
+      kanal = d.kanal;
+    }
+    const items = tx.items.map(i => ({ nama: i.nama, qty: i.qty, harga: i.harga, subtotal: i.qty * i.harga }));
+    const subtotal = items.reduce((s, i) => s + i.subtotal, 0);
+    const total = Math.round(Number(d.totalBayar) || subtotal);
+    rec = { tanggal: tx.tgl, supplier: info.nama, namaRek: info.rek, bank: '', noRek: '', kanal: kanal,
+            noTrxMp: info.inv, keterangan: info.platform, items: items, subtotal: subtotal, total: total, pur: tx.pur };
+  } else {
+    // --- input manual / tempel dari WA ---
+    const tanggal = String(d.tanggal || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(tanggal)) throw new Error('Tanggal wajib diisi.');
+    if (KANAL_LIST.indexOf(d.kanal) < 0) throw new Error('Pilih kanal transaksi dulu.');
+    const isMp = d.kanal === 'Marketplace';
+    const supplier = String(d.supplier || '').trim();
+    if (!supplier && !isMp) throw new Error('Nama supplier wajib diisi.');
+    const namaRek = String(d.namaRek || '').trim() || (isMp ? 'Rekening Marketplace' : '');
+    if (!namaRek) throw new Error('Nama rekening wajib diisi.');
+    if (isMp && !String(d.noTrxMp || '').trim()) throw new Error('No. invoice marketplace wajib diisi.');
+    const items = (d.items || [])
+      .map(it => ({ nama: String(it.nama || '').trim(), qty: Number(it.qty) || 0, harga: Number(it.harga) || 0 }))
+      .filter(it => it.nama && it.qty > 0);
+    if (!items.length) throw new Error('Minimal 1 barang dengan qty > 0.');
+    items.forEach(it => it.subtotal = it.qty * it.harga);
+    const subtotal = items.reduce((s, it) => s + it.subtotal, 0);
+    rec = { tanggal: tanggal, supplier: supplier, namaRek: namaRek, bank: String(d.bank || '').trim(), noRek: String(d.noRek || '').trim(),
+            kanal: d.kanal, noTrxMp: isMp ? String(d.noTrxMp || '').trim() : '', keterangan: '', items: items,
+            subtotal: subtotal, total: subtotal, pur: '' };
+  }
+  if (!(rec.total > 0)) throw new Error('Total dibayar harus lebih dari 0.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = getSheet_();
+    // penjaga entri kembar: token sama = kiriman ulang (kembalikan hasil lama), PUR sama = sudah pernah dibuat
+    const sameTok = findRow_(sh, COL['Token'], token);
+    if (sameTok) return resultFromRow_(sameTok.values);
+    if (rec.pur) {
+      const samePur = findRow_(sh, COL['Ref PUR'], rec.pur);
+      if (samePur) throw new Error('DUPLIKAT: ' + rec.pur + ' sudah dibuat nota (' + samePur.values[COL['No Nota']] + ').');
+    }
+    const noNota = nextNoNota_(sh, rec.tanggal);
+    const now = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm:ss');
+    const row = new Array(HEADERS.length).fill('');
+    row[COL['ID']] = Utilities.getUuid();
+    row[COL['Token']] = token;
+    row[COL['No Nota']] = noNota;
+    row[COL['Tanggal']] = rec.tanggal;
+    row[COL['Nama Supplier']] = rec.supplier;
+    row[COL['No WA Supplier']] = normWa_(d.waSupplier);
+    row[COL['Nama Rekening']] = rec.namaRek;
+    row[COL['Bank']] = rec.bank;
+    row[COL['No Rekening']] = rec.noRek;
+    row[COL['Kanal']] = rec.kanal;
+    row[COL['No Transaksi Marketplace']] = rec.noTrxMp;
+    row[COL['Keterangan']] = rec.keterangan;
+    row[COL['Items (JSON)']] = JSON.stringify(rec.items);
+    row[COL['Total']] = String(rec.total);
+    row[COL['Status']] = STATUS_MENUNGGU;
+    row[COL['Dibuat']] = now;
+    row[COL['Ref PUR']] = rec.pur;
+    row[COL['Subtotal Barang']] = String(rec.subtotal);
+    const at = sh.getLastRow() + 1;
+    sh.getRange(at, 1, 1, HEADERS.length).setNumberFormat('@').setValues([row]); // tulis 1 rentang
+    return resultFromRow_(row);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function resultFromRow_(v) {
+  return { noNota: v[COL['No Nota']], link: webAppUrl_() + '?t=' + v[COL['Token']], token: v[COL['Token']],
+           waSupplier: v[COL['No WA Supplier']], pur: v[COL['Ref PUR']] || '' };
+}
+
+function listTrx(pin) {
+  checkPin_(pin);
+  const sh = getSheet_();
+  const last = sh.getLastRow();
+  if (last < 2) return [];
+  const from = Math.max(2, last - 299);                 // cukup 300 nota terakhir
+  const vals = sh.getRange(from, 1, last - from + 1, HEADERS.length).getDisplayValues();
+  const base = webAppUrl_();
+  return vals.filter(r => r[COL['ID']]).map(r => ({
+    id: r[COL['ID']],
+    noNota: r[COL['No Nota']],
+    tanggal: r[COL['Tanggal']],
+    supplier: r[COL['Nama Supplier']],
+    waSupplier: r[COL['No WA Supplier']],
+    kanal: r[COL['Kanal']],
+    noTrxMp: r[COL['No Transaksi Marketplace']],
+    total: Number(r[COL['Total']]) || 0,
+    pur: r[COL['Ref PUR']] || '',
+    status: r[COL['Status']],
+    signedAt: r[COL['Ditandatangani']],
+    pdf: r[COL['Link PDF']],
+    link: base + '?t=' + r[COL['Token']],
+  })).reverse();
+}
+
+function deleteTrx(pin, id) {
+  checkPin_(pin);
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    const sh = getSheet_();
+    const found = findRow_(sh, COL['ID'], id);
+    if (!found) throw new Error('Transaksi tidak ditemukan.');
+    if (found.values[COL['Status']] === STATUS_SELESAI) throw new Error('Transaksi yang sudah ditandatangani tidak bisa dihapus.');
+    sh.deleteRow(found.row);
+    return true;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ============================== SUPPLIER API ============================== */
+
+function submitSignature(token, sigNota, sigPernyataan) {
+  const re = /^data:image\/png;base64,[A-Za-z0-9+/=]+$/;
+  if (!re.test(sigNota || '') || !re.test(sigPernyataan || '')) throw new Error('Tanda tangan belum lengkap.');
+  if (sigNota.length > 1500000 || sigPernyataan.length > 1500000) throw new Error('Ukuran tanda tangan terlalu besar.');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sh = getSheet_();
+    const found = findRow_(sh, COL['Token'], token);
+    if (!found) throw new Error('Link tidak valid.');
+    const trx = rowToTrx_(found.values);
+    if (trx.status === STATUS_SELESAI) {
+      return { already: true, url: trx.pdf, fileName: fileName_(trx) };
+    }
+    const signedAt = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm:ss');
+    const html = buildPdfHtml_(trx, sigNota, sigPernyataan, signedAt);
+    const blob = Utilities.newBlob(html, 'text/html', 'nota.html').getAs('application/pdf').setName(fileName_(trx));
+    const file = getFolder_().createFile(blob);
+    if (CONFIG.PDF_LINK_PUBLIC) {
+      try { file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); } catch (e) { /* domain policy */ }
+    }
+    const url = file.getUrl();
+    // tulis Status..Link PDF sekaligus (1 rentang, bukan per sel)
+    const c0 = COL['Status'], seg = found.values.slice(c0, COL['Link PDF'] + 1);
+    seg[0] = STATUS_SELESAI;
+    seg[COL['Ditandatangani'] - c0] = signedAt;
+    seg[COL['Link PDF'] - c0] = url;
+    sh.getRange(found.row, c0 + 1, 1, seg.length).setValues([seg]);
+    return {
+      already: false,
+      url: url,
+      fileName: fileName_(trx),
+      base64: Utilities.base64Encode(blob.getBytes()),
+    };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/* ============================== PDF ============================== */
+
+function buildPdfHtml_(t, sigNota, sigPernyataan, signedAt) {
+  const rows = t.items.map((it, i) =>
+    '<tr><td class="c">' + (i + 1) + '</td><td>' + esc_(it.nama) + '</td><td class="c">' + it.qty +
+    '</td><td class="r">' + rp_(it.harga) + '</td><td class="r">' + rp_(it.subtotal) + '</td></tr>').join('');
+
+
+  const rekLine = esc_(t.namaRek) + (t.bank ? ' — ' + esc_(t.bank) : '') + (t.noRek ? ' ' + esc_(t.noRek) : '');
+  const kanalLine = kanalText_(t);
+
+  const css =
+    'body{font-family:Arial,Helvetica,sans-serif;font-size:11pt;color:#111;margin:0}' +
+    '.page{padding:6px 4px}' +
+    'h1{font-size:16pt;margin:0 0 2px 0;letter-spacing:1px}' +
+    '.muted{color:#555;font-size:9.5pt}' +
+    '.hdr{border-bottom:2px solid #1f3a5f;padding-bottom:6px;margin-bottom:12px}' +
+    'table{border-collapse:collapse;width:100%}' +
+    '.info td{padding:3px 4px;vertical-align:top}' +
+    '.items th{background:#e3e8ef;color:#111;padding:6px;font-size:10pt;border:1px solid #888}' +
+    '.items td{border:1px solid #bbb;padding:5px 6px;font-size:10pt}' +
+    '.c{text-align:center}.r{text-align:right}' +
+    '.sig{width:240px;text-align:center;margin-left:auto;margin-top:18px}' +
+    '.sig img{width:200px;height:auto}' +
+    '.line{border-top:1px solid #111;padding-top:3px;font-weight:bold}' +
+    'ol li{margin-bottom:6px}' +
+    'p{line-height:1.5;margin:6px 0}';
+
+  const sigBlock = (img, label) =>
+    '<div class="sig"><div>' + label + '</div><img src="' + img + '"/><div class="line">' + (esc_(t.supplier) || '&nbsp;') + '</div></div>';
+  const isMp = t.kanal === 'Marketplace';
+  const bayarLine = isMp ? '<b>LUNAS</b>, dibayar melalui marketplace' : '<b>LUNAS</b>, ditransfer ke rekening di atas';
+  const supLabel = isMp ? 'Nama Toko' : 'Nama Supplier / Penjual';
+
+  const nota =
+    '<div class="page">' +
+    '<div class="hdr"><h1>NOTA PEMBELIAN</h1><div class="muted">' + esc_(CONFIG.NAMA_TOKO) + ' · ' + esc_(CONFIG.KOTA) + '</div></div>' +
+    '<table class="info">' +
+    '<tr><td width="34%">No. Nota</td><td>: <b>' + esc_(t.noNota) + '</b>' + (t.pur ? ' <span class="muted">(Ref. ' + esc_(t.pur) + ')</span>' : '') + '</td></tr>' +
+    '<tr><td>Tanggal</td><td>: ' + tglIndo_(t.tanggal) + '</td></tr>' +
+    (t.supplier ? '<tr><td>' + supLabel + '</td><td>: ' + esc_(t.supplier) + '</td></tr>' : '') +
+    '<tr><td>Nama Rekening</td><td>: ' + rekLine + '</td></tr>' +
+    '<tr><td>Transaksi melalui</td><td>: ' + kanalLine + '</td></tr>' +
+    '<tr><td>Pembayaran</td><td>: ' + bayarLine + '</td></tr>' +
+    '</table><br/>' +
+    '<table class="items"><tr><th width="6%">No</th><th>Nama Barang</th><th width="8%">Qty</th><th width="20%">Harga</th><th width="22%">Subtotal</th></tr>' +
+    rows +
+    (t.subtotal && t.total > t.subtotal
+      ? '<tr><td colspan="4" class="r"><b>Total barang</b></td><td class="r"><b>' + rp_(t.subtotal) + '</b></td></tr>' +
+        '<tr><td colspan="4" class="r">Ditransfer PGNet</td><td class="r">' + rp_(t.total) + '</td></tr>' +
+        '<tr><td colspan="4" class="r">Sisa dana di penjual</td><td class="r">' + rp_(t.total - t.subtotal) + '</td></tr>'
+      : t.subtotal && t.subtotal !== t.total
+      ? '<tr><td colspan="4" class="r">Subtotal barang</td><td class="r">' + rp_(t.subtotal) + '</td></tr>' +
+        '<tr><td colspan="4" class="r">' + (t.total < t.subtotal ? 'Potongan (ongkir, dll.)' : 'Tambahan') + '</td><td class="r">' + (t.total < t.subtotal ? '−' : '+') + rp_(Math.abs(t.subtotal - t.total)) + '</td></tr>' +
+        '<tr><td colspan="4" class="r"><b>Total Dibayar</b></td><td class="r"><b>' + rp_(t.total) + '</b></td></tr>'
+      : '<tr><td colspan="4" class="r"><b>Total</b></td><td class="r"><b>' + rp_(t.total) + '</b></td></tr>') +
+    '</table>' +
+    sigBlock(sigNota, 'Penjual,') +
+    '<p class="muted" style="margin-top:20px">Ditandatangani secara elektronik pada ' + esc_(signedAt) + ' WIB.</p>' +
+    '</div>';
+
+  const pernyataan =
+    '<div class="page" style="page-break-before:always">' +
+    '<div class="hdr" style="text-align:center"><h1>SURAT PERNYATAAN</h1><div class="muted">Keabsahan Barang yang Dijual</div></div>' +
+    '<p>Saya yang bertanda tangan di bawah ini:</p>' +
+    '<table class="info">' +
+    (t.supplier ? '<tr><td width="34%">' + supLabel + '</td><td>: ' + esc_(t.supplier) + '</td></tr>' : '') +
+    (t.waSupplier ? '<tr><td>No. WhatsApp</td><td>: ' + esc_(t.waSupplier) + '</td></tr>' : '') +
+    '<tr><td>Nama Rekening</td><td>: ' + rekLine + '</td></tr>' +
+    '</table>' +
+    '<p>menyatakan dengan sebenarnya bahwa barang yang saya jual kepada <b>' + esc_(CONFIG.NAMA_TOKO) +
+    '</b> sebagaimana tercantum dalam <b>Nota No. ' + esc_(t.noNota) + '</b> tanggal ' + tglIndo_(t.tanggal) +
+    ' (transaksi melalui ' + kanalLine + ') adalah:</p>' +
+    '<ol>' +
+    '<li>Milik saya yang sah atau saya peroleh dengan cara yang sah;</li>' +
+    '<li><b>Bukan barang hasil curian</b>, penggelapan, penipuan, penadahan, atau hasil tindak pidana lainnya;</li>' +
+    '<li>Tidak sedang dalam sengketa, dijaminkan, atau disita oleh pihak mana pun.</li>' +
+    '</ol>' +
+    (t.subtotal && t.total > t.subtotal
+      ? '<p>Saya telah menerima pembayaran sebesar <b>' + rp_(t.total) + '</b> ' + (isMp ? 'melalui marketplace' : 'melalui transfer ke rekening di atas') + ' untuk barang senilai <b>' + rp_(t.subtotal) + '</b>, dengan <b>sisa dana di penjual sebesar ' + rp_(t.total - t.subtotal) + '</b>.</p>'
+      : '<p>Saya telah menerima pembayaran atas barang tersebut secara <b>lunas</b> sebesar <b>' + rp_(t.total) + '</b> ' + (isMp ? 'melalui marketplace' : 'melalui transfer ke rekening di atas') + '.</p>') +
+    '<p>Apabila di kemudian hari terbukti pernyataan ini tidak benar, saya bersedia bertanggung jawab sepenuhnya secara hukum ' +
+    'dan membebaskan ' + esc_(CONFIG.NAMA_TOKO) + ' dari segala tuntutan pihak mana pun.</p>' +
+    '<p>Demikian surat pernyataan ini saya buat dengan sadar, sebenar-benarnya, dan tanpa paksaan dari pihak mana pun.</p>' +
+    '<div class="sig"><div>' + esc_(CONFIG.KOTA) + ', ' + tglIndo_(t.tanggal) + '</div><div>Yang membuat pernyataan,</div>' +
+    '<img src="' + sigPernyataan + '"/><div class="line">' + (esc_(t.supplier) || '&nbsp;') + '</div></div>' +
+    '<p class="muted" style="margin-top:20px">Ditandatangani secara elektronik pada ' + esc_(signedAt) + ' WIB.</p>' +
+    '</div>';
+
+  return '<html><head><meta charset="utf-8"><style>' + css + '</style></head><body>' + nota + pernyataan + '</body></html>';
+}
+
+/* ============================== HELPERS ============================== */
+
+function rowToTrx_(r) {
+  let items = [];
+  try { items = JSON.parse(r[COL['Items (JSON)']] || '[]'); } catch (e) {}
+  return {
+    id: r[COL['ID']],
+    token: r[COL['Token']],
+    noNota: r[COL['No Nota']],
+    tanggal: toIso_(r[COL['Tanggal']]),
+    supplier: r[COL['Nama Supplier']],
+    waSupplier: r[COL['No WA Supplier']],
+    namaRek: r[COL['Nama Rekening']],
+    bank: r[COL['Bank']],
+    noRek: r[COL['No Rekening']],
+    kanal: r[COL['Kanal']],
+    noTrxMp: r[COL['No Transaksi Marketplace']],
+    keterangan: r[COL['Keterangan']],
+    items: items,
+    total: Number(r[COL['Total']]) || 0,
+    subtotal: Number(r[COL['Subtotal Barang']]) || 0,
+    pur: r[COL['Ref PUR']] || '',
+    status: r[COL['Status']],
+    signedAt: String(r[COL['Ditandatangani']] || ''),
+    pdf: r[COL['Link PDF']],
+  };
+}
+
+function publicView_(t) {
+  const v = Object.assign({}, t);
+  delete v.id;            // token tetap dikirim (dipakai saat submit TTD)
+  v.kanalText = kanalTextPlain_(t);
+  return v;
+}
+
+function findByToken_(token) {
+  const sh = getSheet_();
+  const found = findRow_(sh, COL['Token'], token);
+  if (!found) return null;
+  const t = rowToTrx_(found.values);
+  t.token = token;
+  return t;
+}
+
+function findRow_(sh, colIdx, value) {
+  const last = sh.getLastRow();
+  if (last < 2 || !value) return null;
+  // cari pakai TextFinder (cepat), lalu baca 1 baris saja
+  const cell = sh.getRange(2, colIdx + 1, last - 1, 1).createTextFinder(String(value)).matchEntireCell(true).matchCase(true).findNext();
+  if (!cell) return null;
+  const row = cell.getRow();
+  return { row: row, values: sh.getRange(row, 1, 1, HEADERS.length).getDisplayValues()[0] };
+}
+
+function nextNoNota_(sh, tanggalIso) {
+  const prefix = 'PGN-' + tanggalIso.replace(/-/g, '') + '-';
+  const last = sh.getLastRow();
+  let max = 0;
+  if (last >= 2) {
+    const from = Math.max(2, last - 999);                 // nomor per tanggal: cukup 1000 baris terakhir
+    sh.getRange(from, COL['No Nota'] + 1, last - from + 1, 1).getDisplayValues().forEach(r => {
+      if (r[0].indexOf(prefix) === 0) max = Math.max(max, Number(r[0].slice(prefix.length)) || 0);
+    });
+  }
+  return prefix + ('00' + (max + 1)).slice(-3);
+}
+
+function kanalTextPlain_(t) {
+  // Keterangan = nama platform dari kolom C Barang Masuk (Shopee, Tokopedia, TOCO, ...)
+  let s = t.kanal === 'Marketplace' && t.keterangan ? t.keterangan : (t.kanal || '-');
+  if (t.noTrxMp) s += ', No. Invoice ' + t.noTrxMp;
+  return s;
+}
+
+function kanalText_(t) { return esc_(kanalTextPlain_(t)); }
+
+function fileName_(t) {
+  const who = t.supplier || t.noTrxMp || '';
+  return 'Nota & Pernyataan ' + t.noNota + (who ? ' - ' + String(who).replace(/[\\/:*?"<>|]/g, '') : '') + '.pdf';
+}
+
+function webAppUrl_() { return ScriptApp.getService().getUrl(); }
+function tz_() { return Session.getScriptTimeZone() || 'Asia/Jakarta'; }
+
+function toIso_(v) {
+  if (!v) return '';
+  if (v instanceof Date) return Utilities.formatDate(v, tz_(), 'yyyy-MM-dd');
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/); // dd/mm/yyyy
+  if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+  return s;
+}
+
+function tglIndo_(iso) {
+  const BLN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return esc_(iso);
+  return Number(m[3]) + ' ' + BLN[Number(m[2]) - 1] + ' ' + m[1];
+}
+
+function rp_(n) {
+  return 'Rp ' + Math.round(Number(n) || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function normWa_(v) {
+  let s = String(v || '').replace(/[^\d]/g, '');
+  if (!s) return '';
+  if (s.indexOf('0') === 0) s = '62' + s.slice(1);
+  else if (s.indexOf('8') === 0) s = '62' + s;
+  return s;
+}
+
+function esc_(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function safeJson_(o) {
+  return JSON.stringify(o).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+
+
+/* ============================== BARANG MASUK (sumber data) ============================== */
+
+/** Dipanggil halaman admin saat buka & tiap 4 menit (hanya kalau tab terlihat). */
+function getBM(pin, force) {
+  checkPin_(pin);
+  const data = getBMData_(!!force);
+  const notes = notaByPur_();
+  // semua transaksi dikirim; yang sudah dibuat nota diberi info nota (untuk tab "Sudah dibuat")
+  const tx = data.tx.map(t => notes[t.pur] ? Object.assign({}, t, { nota: notes[t.pur] }) : t);
+  return { tx: tx, at: data.at, stale: data.stale || '', start: CONFIG.BM_START };
+}
+
+/** Info nota per Ref PUR — dibaca per rentang sempit (2 blok kolom), bukan per sel. */
+function notaByPur_() {
+  const sh = getSheet_();
+  const last = sh.getLastRow(), out = {};
+  if (last < 2) return out;
+  const a0 = COL['Token'], a1 = COL['No WA Supplier'];          // Token..No WA
+  const b0 = COL['Total'], b1 = COL['Ref PUR'];                 // Total..Ref PUR
+  const A = sh.getRange(2, a0 + 1, last - 1, a1 - a0 + 1).getDisplayValues();
+  const B = sh.getRange(2, b0 + 1, last - 1, b1 - b0 + 1).getDisplayValues();
+  const base = webAppUrl_();
+  for (let i = 0; i < B.length; i++) {
+    const pur = B[i][b1 - b0];
+    if (!pur) continue;
+    out[pur] = { noNota: A[i][COL['No Nota'] - a0], token: A[i][0], wa: A[i][a1 - a0], link: base + '?t=' + A[i][0],
+                 total: Number(B[i][0]) || 0, status: B[i][COL['Status'] - b0] };
+  }
+  return out;
+}
+
+function findBMTx_(pur) {
+  let data = getBMData_(false);
+  let t = data.tx.filter(x => x.pur === pur)[0];
+  if (!t) { data = getBMData_(true); t = data.tx.filter(x => x.pur === pur)[0]; }
+  return t || null;
+}
+
+/** Cache 5 menit (dipotong ±90 KB) + salinan "data baik terakhir" 6 jam untuk pengaman. */
+function getBMData_(force) {
+  const cache = CacheService.getScriptCache();
+  if (!force) {
+    const c = getChunked_(cache, 'bm');
+    if (c) return JSON.parse(c);
+  }
+  let fresh = null, bad = '';
+  try { fresh = readBMFresh_(); } catch (e) { bad = 'Gagal membaca Barang Masuk: ' + e.message; }
+  const goodStr = getChunked_(cache, 'bm_good');
+  const good = goodStr ? JSON.parse(goodStr) : null;
+  if (fresh && fresh.corrupt) bad = 'Data sumber berisi ' + fresh.corrupt;
+  if (fresh && !bad && good && good.tx.length >= 4 && fresh.tx.length < good.tx.length * 0.5)
+    bad = 'Jumlah transaksi anjlok (' + fresh.tx.length + ' dari ' + good.tx.length + ')';
+  let out;
+  if (bad) {
+    if (!good) throw new Error(bad + '. Coba lagi sebentar.');
+    out = { tx: good.tx, at: good.at, stale: bad + ' — memakai data terakhir yang baik.' };
+  } else {
+    out = { tx: fresh.tx, at: fresh.at };
+    putChunked_(cache, 'bm_good', JSON.stringify(out), 21600);
+  }
+  putChunked_(cache, 'bm', JSON.stringify(out), CONFIG.CACHE_TTL);
+  return out;
+}
+
+/** Baca dari bawah ke atas per blok 1.500 baris (B:M sekaligus) sampai tanggal < BM_START. */
+function readBMFresh_() {
+  const sh = SpreadsheetApp.openById(CONFIG.BM_SPREADSHEET_ID).getSheetByName(CONFIG.BM_SHEET);
+  if (!sh) throw new Error('Tab "' + CONFIG.BM_SHEET + '" tidak ditemukan');
+  const BAD = /^(#REF!|#N\/A|#VALUE!|#ERROR!|#NAME\?|#DIV\/0!|Loading)/i;
+  let end = sh.getLastRow(), rows = [], corrupt = '';
+  const CHUNK = 1500;
+  outer:
+  while (end >= 2) {
+    const start = Math.max(2, end - CHUNK + 1);
+    const vals = sh.getRange(start, 2, end - start + 1, 12).getDisplayValues(); // kolom B..M
+    for (let i = vals.length - 1; i >= 0; i--) {
+      const r = vals[i];
+      if (!r[3]) continue;                                   // kolom E (No. PUR) kosong → lewati
+      const iso = parseTglId_(r[0]);
+      if (!iso) { if (BAD.test(r[0])) corrupt = r[0]; continue; }
+      if (iso < CONFIG.BM_START) break outer;
+      for (let k = 0; k < r.length; k++) if (BAD.test(r[k])) { corrupt = r[k]; break; }
+      rows.push(r);
+    }
+    end = start - 1;
+  }
+  rows.reverse();
+  const tx = [], idx = {};
+  rows.forEach(r => {
+    // r: 0=B tgl, 1=C jenis, 2=D nama, 3=E PUR, 4=F kode, 5=G, 6=H kategori, 7=I barang, 8=J qty, 9=K, 10=L, 11=M harga
+    const pur = r[3].trim();
+    if (!(pur in idx)) { idx[pur] = tx.length; tx.push({ pur: pur, tgl: parseTglId_(r[0]), tglText: r[0], jenis: r[1].trim(), d: r[2].trim(), items: [], total: 0 }); }
+    const t = tx[idx[pur]];
+    const qty = numId_(r[8]), harga = numId_(r[11]);
+    t.items.push({ nama: r[7].trim(), qty: qty, harga: harga });
+    t.total += qty * harga;
+  });
+  return { tx: tx, at: Date.now(), corrupt: corrupt };
+}
+
+/** Aturan nama/kanal dari kolom C & D (sama persis dengan di halaman admin). */
+function deriveBM_(t) {
+  const platform = String(t.jenis || '').trim();
+  const isDirect = !platform || /^direct$/i.test(platform);
+  const parts = String(t.d || '').split('/').map(s => s.trim()).filter(Boolean);
+  const first = parts[0] || '';
+  const PRE = /^(SP|TC|TP)\s+(.+)$/i;
+  const isInv = /^[A-Za-z0-9]{8,}$/.test(first) && /\d/.test(first) && !/^[A-Za-z]+$/.test(first);
+  if (isInv) {
+    let toko = '';
+    parts.slice(1).forEach(p => { const m = p.match(PRE); if (m && !toko) toko = m[2].trim(); });
+    return { kanal: 'Marketplace', platform: isDirect ? '' : platform, inv: first, nama: toko, rek: 'Rekening Marketplace' };
+  }
+  if (!isDirect) {
+    const m = first.match(PRE);
+    return { kanal: 'Marketplace', platform: platform, inv: '', nama: m ? m[2].trim() : first, rek: 'Rekening Marketplace' };
+  }
+  return { kanal: '', platform: '', inv: '', nama: first, rek: first };
+}
+
+function parseTglId_(s) {
+  const BL = { januari: 1, februari: 2, maret: 3, april: 4, mei: 5, juni: 6, juli: 7, agustus: 8, september: 9, oktober: 10, november: 11, desember: 12 };
+  s = String(s || '').trim();
+  let m = s.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+  if (m && BL[m[2].toLowerCase()]) return m[3] + '-' + ('0' + BL[m[2].toLowerCase()]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : '';
+}
+
+function numId_(s) { return Number(String(s || '').replace(/[^\d]/g, '')) || 0; }
+
+function putChunked_(cache, key, str, ttl) {
+  const SIZE = 30000;                                   // ≤ ±90 KB per potong (aman untuk huruf non-ASCII)
+  const n = Math.max(1, Math.ceil(str.length / SIZE)), obj = {};
+  for (let i = 0; i < n; i++) obj[key + '_' + i] = str.substr(i * SIZE, SIZE);
+  obj[key + '_n'] = String(n);
+  cache.putAll(obj, ttl);
+}
+
+function getChunked_(cache, key) {
+  const n = Number(cache.get(key + '_n'));
+  if (!n) return null;
+  const keys = [];
+  for (let i = 0; i < n; i++) keys.push(key + '_' + i);
+  const got = cache.getAll(keys);
+  let s = '';
+  for (let i = 0; i < keys.length; i++) { if (got[keys[i]] == null) return null; s += got[keys[i]]; }
+  return s;
+}
+
+;return {build:buildPdfHtml_};})();
+var CFG={nama:'PGNet',wa:'6289605345210',waTampil:'0896-0534-5210',kota:'Bogor'};
+function makeData(){var t={noNota:'PGN-20261018-001',tanggal:'2026-10-18',supplier:'Budi Santoso',waSupplier:'6281234567890',namaRek:'Budi Santoso',bank:'BCA',noRek:'4120887731',kanal:'Datang Langsung',noTrxMp:'',keterangan:'',
+ items:[{nama:'Processor Intel Core i5-10400F (bekas, tray)',qty:1,harga:950000},{nama:'RAM DDR4 16GB (2x8GB) Corsair Vengeance',qty:1,harga:520000},{nama:'SSD NVMe 512GB WD Blue SN570',qty:1,harga:430000}]};
+ t.items.forEach(function(i){i.subtotal=i.qty*i.harga;});t.total=t.items.reduce(function(s,i){return s+i.subtotal;},0);
+ t.kanalText=t.kanal+(t.noTrxMp?', No. Transaksi '+t.noTrxMp:'')+(t.keterangan?' — '+t.keterangan:'');return t;}
+var DATA=makeData(), RES=null, pads={};
+var BLN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function tgl(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(+m[3])+' '+BLN[+m[2]-1]+' '+m[1]:(iso||'');}
+function rp(n){return 'Rp '+Math.round(+n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function rek(t){return esc(t.namaRek)+(t.bank?' — '+esc(t.bank):'')+(t.noRek?' '+esc(t.noRek):'');}
+var app=document.getElementById('app');
+function step(n){document.getElementById('role').textContent=n<=2?'Admin PGNet':'supplier';for(var i=1;i<=6;i++)document.getElementById('s'+i).className=i<=n?'on':'';window.scrollTo(0,0);}
+function now(){var d=new Date();return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+
+/* ADMIN — isi nota */
+var KANAL=['Marketplace','Datang Langsung','WhatsApp'];
+function num(s){return Number(String(s||'').replace(/[^\d]/g,''))||0;}
+function fmtNum(n){return n?String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'.'):'';}
+function today(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
+function viewAdmin(){
+  step(1);closeSheet&&closeSheet();
+  if(MODE==='A')return viewA();if(MODE==='B')return viewB();if(MODE==='C')return viewC();
+  viewForm();app.insertAdjacentHTML('afterbegin',modeBar());bindMode();
+}
+function viewForm(){
+  step(1);var t=DATA;
+  app.innerHTML=
+  '<div class="card bm"><span class="pill">Ambil dari Barang Masuk</span>'+
+   '<p class="hint">Pilih transaksi (No. PUR) dari tab <b>Barang Masuk</b>. Tanggal, nama, barang, qty, harga & total langsung terisi.</p>'+
+   '<p class="hint demo-note">Simulasi memakai contoh data 29–30 Okt. Di aplikasi asli hanya transaksi mulai <b>1 November 2026</b> yang muncul.</p>'+
+   fld('Transaksi','<select id="f_bm"></select>')+'<div id="bmInfo"></div></div>'+
+  '<details class="card paste"><summary class="pill sumpill">Atau: tempel dari WA</summary>'+
+   '<p class="hint">Pilih contoh dari grup Inventory, atau tempel teksmu sendiri, lalu tekan <b>Isi Otomatis</b>.</p>'+
+   '<div class="chips">'+SAMPLES.map(function(x,i){return '<button type="button" class="chip" data-i="'+i+'">'+esc(x.label)+'</button>';}).join('')+'</div>'+
+   '<textarea id="f_paste" rows="6" aria-label="Teks dari WhatsApp"></textarea>'+
+   '<button class="btn btn-primary" type="button" id="parse">Isi Otomatis</button><div id="pmsg"></div></details>'+
+  '<div class="card"><span class="pill">Admin · Data nota</span>'+
+   fld('Tanggal nota *','<input type="date" id="f_tgl" value="'+today()+'">')+
+   fld('<span id="suplbl">Nama supplier / penjual *</span>','<input id="f_sup" value="'+esc(t.supplier)+'">')+
+   fld('No. WhatsApp supplier','<input id="f_wa" inputmode="tel" value="0812-3456-7890">')+'</div>'+
+  '<div class="card"><span class="pill">Rekening supplier</span>'+
+   fld('Nama rekening *','<input id="f_rek" value="'+esc(t.namaRek)+'">')+
+   '<div class="g2">'+fld('Bank','<input id="f_bank" value="BCA">')+fld('No. rekening','<input id="f_norek" inputmode="numeric" value="4120887731">')+'</div></div>'+
+  '<div class="card"><span class="pill">Transaksi melalui</span>'+
+   fld('Kanal *','<select id="f_kanal"><option value="">— Pilih kanal —</option>'+KANAL.map(function(k){return '<option'+(k===t.kanal?' selected':'')+'>'+k+'</option>';}).join('')+'</select>')+
+   '<div id="mpbox" hidden>'+fld('No. invoice marketplace *','<input id="f_mp" placeholder="cth: 260930D3Y16T8S">')+'</div>'+
+   '</div>'+
+  '<div class="card"><span class="pill">Barang</span><div id="items" class="stack"></div><button class="btn btn-ghost" type="button" id="addit">+ Tambah barang</button>'+
+   '<div class="sumrow big"><span>Total</span><span id="tot">Rp 0</span></div></div>'+
+  '<div class="card"><span class="pill">Konfirmasi</span><label class="check"><input type="checkbox" id="f_ok"><span>Semua barang <b>sudah dites dan normal</b>, dan pembayaran <b>sudah ditransfer lunas</b> ke rekening supplier.</span></label><p class="hint">Link hanya bisa dibuat setelah dicentang.</p></div>'+
+  '<button class="btn btn-primary" type="button" id="save">Simpan &amp; Buat Link</button><div id="amsg"></div>';
+  t.items.forEach(function(it){addItem(it.nama,it.qty,it.harga);});
+  document.getElementById('addit').onclick=function(){addItem('',1,0,true);};
+  var k=document.getElementById('f_kanal');k.onchange=onKanal;
+  document.getElementById('save').onclick=saveNota;
+  document.querySelectorAll('.chip').forEach(function(c){c.onclick=function(){loadSample(+c.getAttribute('data-i'));};});
+  document.getElementById('parse').onclick=parsePaste;
+  onKanal();calc();
+  fillBMSelect();document.getElementById('f_bm').onchange=function(){applyBM(this.value);};
+  var first=BM.filter(function(x){return !USED[x.pur];})[3]||BM.filter(function(x){return !USED[x.pur];})[0];
+  if(first){document.getElementById('f_bm').value=first.pur;applyBM(first.pur);}
+}
+var SAMPLES=[
+ {label:'Rizky Ega',text:'*RIZKY EGA JULIAWAN / EGA*\n261008041 SSD SATA 500GB (100%) (0 Days) - Samsung 870 EVO (1) 675.000\n261008042 SSD SATA 500GB (97%) - SanDisk Ultra (2) 550.000\n261008043 SSD SATA 500GB (99%) - SanDisk Ultra (1) 550.000\n261008044 RAM Laptop DDR3 8GB 12800 - V-GeN Platinum (1) 160.000'},
+ {label:'Hendri',text:'*HENDRI PRASETYO / ERIK / DFOD*\n261008034 i5-10400 (1) 1.750.000\n261008035 Ryzen 7 3700X (1) 1.610.000'},
+ {label:'SP Mansupershop',text:'*260930D3Y16T8S / SP MANSUPERSHOP*\n261008029 RAM Laptop DDR4 8GB 3200 - Kingston (1) 393.500\n261008030 RAM Laptop DDR4 8GB 3200 - SK hynix (1) 393.500'},
+ {label:'TC Esang',text:'*23800527047 / TC ESANG KOMPUTER*\n261008024 RAM Laptop DDR5 16GB 4800 - ADATA (1) 2.334.914'},
+ {label:'Invoice tanpa nama',text:'*260926311C5W8B / MUHAMAD SAEPUL FIKRI*\n260928059  SSD SATA 256GB (88%) - Lexar NS100 (1) 335.500'},
+ {label:'TP C3 Hardware',text:' *586184949278672830 / TP C3 Hardware & Maintenance*\n260924029  RAM PC DDR4 8GB 2666 - Team (1) 509.100'}];
+function loadSample(i){document.getElementById('f_paste').value=SAMPLES[i].text;document.querySelectorAll('.chip').forEach(function(c,j){c.classList.toggle('on',j===i);});parsePaste();}
+var MP_PREFIX=/^(SP|TC|TP)\s+(.+)$/i;
+function isInvoice(x){x=String(x||'').trim();return /^[A-Za-z0-9]{8,}$/.test(x)&&/\d/.test(x);}
+function parseItemLine(line){var m=line.match(/^(?:\d{6,}\s+)?(.+?)\s*\((\d+)\)\s*(?:Rp\.?\s*)?([\d.,]+)\s*$/i);if(!m)return null;var h=Number(m[3].replace(/[.,]/g,''));if(!h)return null;return {nama:m[1].trim(),qty:Number(m[2])||1,harga:h};}
+var BM=[{"pur": "PUR-2026-0842", "tgl": "2026-07-28", "tglText": "Selasa, 28 Juli 2026", "jenis": "Shopee", "d": "SP FAMA NET", "items": [{"nama": "i5-4570", "qty": 1, "harga": 182200}], "total": 182200}, {"pur": "PUR-2026-0843", "tgl": "2026-07-28", "tglText": "Selasa, 28 Juli 2026", "jenis": "Shopee", "d": "SP RAFIZNUSANTARA", "items": [{"nama": "i5-10500", "qty": 1, "harga": 1799500}, {"nama": "i5-10500", "qty": 1, "harga": 1842635}], "total": 3642135}, {"pur": "PUR-2026-0844", "tgl": "2026-07-28", "tglText": "Selasa, 28 Juli 2026", "jenis": "DIRECT", "d": "SUMARWANTO / SESA COMP", "items": [{"nama": "i3-10100", "qty": 1, "harga": 1020000}, {"nama": "i3-9100", "qty": 3, "harga": 300000}], "total": 1920000}, {"pur": "PUR-2026-0845", "tgl": "2026-07-28", "tglText": "Selasa, 28 Juli 2026", "jenis": "DIRECT", "d": "SYAMSURI", "items": [{"nama": "i3-9100F", "qty": 8, "harga": 250000}, {"nama": "Ryzen 5 3400G", "qty": 14, "harga": 800000}, {"nama": "RAM PC DDR4 4GB 2666 - Team Elite+", "qty": 34, "harga": 150000}], "total": 18300000}, {"pur": "PUR-2026-0846", "tgl": "2026-07-28", "tglText": "Selasa, 28 Juli 2026", "jenis": "TOCO", "d": "TC JEZ D TECHNO", "items": [{"nama": "i7-11700K", "qty": 1, "harga": 2870700}], "total": 2870700}, {"pur": "PUR-2026-0847", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "DIRECT", "d": "ALBERT / ABE", "items": [{"nama": "Ryzen 3 3200G", "qty": 1, "harga": 550000}, {"nama": "i5-2400", "qty": 1, "harga": 90000}, {"nama": "i5-2500", "qty": 1, "harga": 100000}, {"nama": "Ryzen 5 1600", "qty": 1, "harga": 413500}], "total": 1153500}, {"pur": "PUR-2026-0848", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "DIRECT", "d": "DANA 23402 / ELIK", "items": [{"nama": "SSD M.2 128GB (86%) - Toshiba", "qty": 1, "harga": 184000}, {"nama": "SSD M.2 256GB (95%) - CS A3 NGFF", "qty": 1, "harga": 300000}], "total": 484000}, {"pur": "PUR-2026-0849", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "DIRECT", "d": "NICHOLAS MARTINUS TANIA / ORFEUS", "items": [{"nama": "i7-12700", "qty": 2, "harga": 3325000}, {"nama": "RAM PC DDR5 16GB (2x8GB) 5600 - Kingston Fury Beast", "qty": 2, "harga": 2000000}, {"nama": "RAM PC DDR4 8GB 2666 - Visipro", "qty": 1, "harga": 400000}, {"nama": "MB MSI H510M-A PRO", "qty": 1, "harga": 300000}], "total": 11350000}, {"pur": "PUR-2026-0850", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "DIRECT", "d": "PRASETYO SUSANTO", "items": [{"nama": "SSD SATA 500GB (99%) - Samsung 870 EVO", "qty": 1, "harga": 625000}], "total": 625000}, {"pur": "PUR-2026-0851", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "DIRECT", "d": "RIZKI SANISCARA UMANIS", "items": [{"nama": "i3-10100", "qty": 1, "harga": 1300000}], "total": 1300000}, {"pur": "PUR-2026-0852", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "Shopee", "d": "SP AKBARCOMP.JBI", "items": [{"nama": "i3-7100", "qty": 1, "harga": 50000}, {"nama": "i5-8400T", "qty": 1, "harga": 454000}], "total": 504000}, {"pur": "PUR-2026-0853", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "Shopee", "d": "SP GREAT MEDIA STORE", "items": [{"nama": "RAM Laptop DDR4 8GB 2400 - Ramaxel", "qty": 1, "harga": 354000}], "total": 354000}, {"pur": "PUR-2026-0854", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "Shopee", "d": "SP MADAN195", "items": [{"nama": "RAM Laptop DDR5 8GB 4800 - SK hynix (Tanpa Label)", "qty": 2, "harga": 1052000}], "total": 2104000}, {"pur": "PUR-2026-0855", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "Shopee", "d": "SP RIAN347", "items": [{"nama": "SSD SATA 256GB (98%) - Visipro", "qty": 1, "harga": 410400}], "total": 410400}, {"pur": "PUR-2026-0856", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "DIRECT", "d": "SYAMSURI", "items": [{"nama": "Ryzen 5 3400G", "qty": 2, "harga": 800000}, {"nama": "MB Gigabyte GA-A320M-S2H V2 (Tanpa Backpanel)", "qty": 11, "harga": 300000}], "total": 4900000}, {"pur": "PUR-2026-0857", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "Tokopedia", "d": "TP CENT STORE CLD", "items": [{"nama": "i9-9900K", "qty": 1, "harga": 3202000}], "total": 3202000}, {"pur": "PUR-2026-0858", "tgl": "2026-07-29", "tglText": "Rabu, 29 Juli 2026", "jenis": "DIRECT", "d": "WAHARNO / TRIPLE QQQ", "items": [{"nama": "SSD SATA 240GB (96%) - SanDisk Plus", "qty": 1, "harga": 300000}, {"nama": "SSD NVMe 1TB (99%) - WD SN730", "qty": 1, "harga": 1158000}], "total": 1458000}, {"pur": "PUR-2026-0859", "tgl": "2026-07-30", "tglText": "Kamis, 30 Juli 2026", "jenis": "DIRECT", "d": "AGUNG PRASETYO", "items": [{"nama": "SSD NVMe 256GB (79%) - Samsung PM961", "qty": 1, "harga": 250000}, {"nama": "SSD NVMe 256GB (84%) - Samsung PM961", "qty": 1, "harga": 350000}, {"nama": "SSD NVMe 256GB (97%) - Samsung PM981", "qty": 1, "harga": 400000}], "total": 1000000}, {"pur": "PUR-2026-0113", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "FADLY", "items": [{"nama": "SSD NVMe 512GB (91%) - Intel 660p", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (93%) - Intel 660p", "qty": 3, "harga": 600000}, {"nama": "SSD NVMe 512GB (97%) - Intel 660p", "qty": 2, "harga": 600000}, {"nama": "SSD NVMe 512GB (98%) - Intel 660p", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (99%) - Intel 660p", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (89%) - Intel 670p", "qty": 1, "harga": 575000}, {"nama": "SSD NVMe 512GB (95%) - Intel 670p", "qty": 2, "harga": 600000}, {"nama": "SSD NVMe 512GB (95%) - Kingston", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (92%) - KIOXIA BG5 Gen4", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (97%) - KIOXIA BG5 Gen4", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (99%) - KIOXIA BG5 Gen4", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (93%) - KIOXIA XG7 Gen4", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (96%) - KIOXIA XG7 Gen4", "qty": 3, "harga": 600000}, {"nama": "SSD NVMe 512GB (97%) - KIOXIA XG7 Gen4", "qty": 3, "harga": 600000}, {"nama": "SSD NVMe 512GB (98%) - KIOXIA XG7 Gen4", "qty": 3, "harga": 600000}, {"nama": "SSD NVMe 512GB (93%) - Micron 3400 Gen4", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (94%) - Micron 3400 Gen4", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (97%) - Samsung PM991a", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (98%) - Samsung PM991a", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (97%) - Samsung PM9A1 Gen4", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (96%) - SK hynix BC711", "qty": 1, "harga": 600000}, {"nama": "SSD NVMe 512GB (100%) - SK hynix BC711", "qty": 2, "harga": 600000}, {"nama": "SSD NVMe 2242 512GB (86%) - Samsung PM9B1 Gen4", "qty": 1, "harga": 575000}, {"nama": "RAM Laptop DDR4 16GB 2400 - V-GeN Platinum", "qty": 1, "harga": 650000}, {"nama": "RAM Laptop DDR4 16GB 2666 - V-GeN Platinum", "qty": 1, "harga": 700000}, {"nama": "RAM Laptop DDR4 16GB 3200 - Samsung", "qty": 1, "harga": 700000}], "total": 22400000}, {"pur": "PUR-2026-0114", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "68000580729 / AGDA PURNAMA", "items": [{"nama": "i3-10105", "qty": 1, "harga": 1321000}], "total": 1321000}, {"pur": "PUR-2026-0115", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "91600578399 / AGDA PURNAMA", "items": [{"nama": "i5-10500", "qty": 1, "harga": 1774000}], "total": 1774000}, {"pur": "PUR-2026-0116", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "MUHAMMAD YANUARI", "items": [{"nama": "SSD SATA 240GB (99%) - ADATA SU650", "qty": 1, "harga": 325000}, {"nama": "SSD SATA 512GB (100%) (0 Days) - V-GeN Platinum (Grs 09.2027)", "qty": 1, "harga": 725000}, {"nama": "HDD 2.5\" 1TB (Slim) (100%) - WD Blue WD10SPZX", "qty": 3, "harga": 840000}, {"nama": "RAM Laptop DDR3L 4GB 12800 - Samsung", "qty": 1, "harga": 70000}, {"nama": "RAM Laptop DDR4 16GB 3200 - SK hynix", "qty": 5, "harga": 950000}, {"nama": "RAM PC DDR3 8GB 12800 - Kingston", "qty": 1, "harga": 180000}, {"nama": "RAM PC DDR3 8GB 12800 - Micron", "qty": 4, "harga": 180000}, {"nama": "RAM PC DDR3 8GB 12800 - SK hynix", "qty": 1, "harga": 180000}, {"nama": "RAM PC DDR4 4GB 2133 - V-GeN Platinum", "qty": 1, "harga": 175000}, {"nama": "RAM PC DDR4 4GB 2400 - SK hynix", "qty": 9, "harga": 175000}, {"nama": "RAM PC DDR4 8GB 2666 - Kingston (ODM)", "qty": 3, "harga": 420000}, {"nama": "RAM PC DDR4 8GB 2666 - Samsung", "qty": 1, "harga": 420000}], "total": 12900000}, {"pur": "PUR-2026-0117", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "26102054KCE0BM / ERIK", "items": [{"nama": "RAM Laptop DDR4 4GB 3200 - Samsung", "qty": 2, "harga": 177000}, {"nama": "RAM Laptop DDR4 8GB 2666 - Ramaxel", "qty": 1, "harga": 415000}, {"nama": "RAM Laptop DDR4 8GB 2666 - Samsung", "qty": 1, "harga": 415000}], "total": 1184000}, {"pur": "PUR-2026-0118", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "DAPOT A SIREGAR / PGNET", "items": [{"nama": "SSD SATA 500GB (100%) - SanDisk Plus", "qty": 1, "harga": 650000}, {"nama": "SSD SATA 500GB (100%) (0 Days) - SanDisk Plus", "qty": 4, "harga": 650000}, {"nama": "SSD SATA 512GB (100%) (0 Days) - Lexar NS100", "qty": 1, "harga": 650000}, {"nama": "SSD SATA 512GB (99%) - Transcend 230S", "qty": 1, "harga": 650000}, {"nama": "HDD 2.5\" 1TB (Slim) (100%) - Seagate Mobile HDD", "qty": 1, "harga": 180000}], "total": 4730000}, {"pur": "PUR-2026-0119", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "IFNU RAZAQ / PGNET", "items": [{"nama": "i7-10700", "qty": 1, "harga": 2600000}], "total": 2600000}, {"pur": "PUR-2026-0120", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "59200586159 / MUHAMAD SAEPUL FIKRI", "items": [{"nama": "SSD SATA 256GB (98%) - Gigabyte", "qty": 1, "harga": 402000}, {"nama": "SSD SATA 256GB (99%) - V-GeN Platinum (Grs 07.2027)", "qty": 1, "harga": 402000}], "total": 804000}, {"pur": "PUR-2026-0121", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "261024ERPKWCCK / ERIK", "items": [{"nama": "SSD NVMe 512GB (95%) - Samsung PM9B1 Gen4", "qty": 1, "harga": 752000}, {"nama": "SSD NVMe 512GB (96%) - Samsung PM9B1 Gen4", "qty": 1, "harga": 752000}], "total": 1504000}, {"pur": "PUR-2026-0122", "tglText": "Kamis, 29 Oktober 2026", "tgl": "2026-10-29", "jenis": "DIRECT", "d": "MUHAMMAD YANUARI", "items": [{"nama": "RAM Laptop DDR4 8GB 3200 - V-GeN Platinum", "qty": 2, "harga": 400000}], "total": 800000}, {"pur": "PUR-2026-0123", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "HARI BUDI DARMAWAN", "items": [{"nama": "i5-9500T", "qty": 1, "harga": 750000}, {"nama": "SSD SATA 500GB (98%) - Samsung 870 EVO", "qty": 1, "harga": 650000}, {"nama": "SSD SATA 512GB (100%) - Team CX2", "qty": 1, "harga": 650000}, {"nama": "SSD M.2 512GB (98%) - V-GeN (Grs Habis)", "qty": 1, "harga": 650000}], "total": 2700000}, {"pur": "PUR-2026-0124", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "JEFRI HUTAGULUNG", "items": [{"nama": "i3-12100", "qty": 1, "harga": 1700000}], "total": 1700000}, {"pur": "PUR-2026-0125", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "DEDI IRAWAN", "items": [{"nama": "i5-8500T", "qty": 1, "harga": 550000}, {"nama": "i3-9100", "qty": 5, "harga": 350000}], "total": 2300000}, {"pur": "PUR-2026-0126", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "261025JDDK4VQ2 / MUHAMAD SAEPUL FIKRI", "items": [{"nama": "SSD NVMe 256GB (97%) - Kingston", "qty": 1, "harga": 403500}], "total": 403500}, {"pur": "PUR-2026-0127", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "PUJI LAKSONO / TS COMPUTER", "items": [{"nama": "i7-10700", "qty": 1, "harga": 2300000}], "total": 2300000}, {"pur": "PUR-2026-0128", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "38400585048 / AGDA PURNAMA", "items": [{"nama": "RAM Laptop DDR4 8GB 3200 - V-GeN Rescue Box (Baru)", "qty": 4, "harga": 632275}], "total": 2529100}, {"pur": "PUR-2026-0129", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "MIFTAHUL FARID / TOKO 7AN", "items": [{"nama": "i5-8500T", "qty": 13, "harga": 580000}], "total": 7540000}, {"pur": "PUR-2026-0130", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "261027PBHDR684 / ERIK", "items": [{"nama": "RAM LAPTOP DDR5 8GB 5600 - SK hynix", "qty": 1, "harga": 1312000}], "total": 1312000}, {"pur": "PUR-2026-0131", "tglText": "Jumat, 30 Oktober 2026", "tgl": "2026-10-30", "jenis": "DIRECT", "d": "261027QF7VV7UA / ERIK", "items": [{"nama": "RAM PC DDR4 8GB 2400 - Samsung", "qty": 4, "harga": 461050}, {"nama": "RAM PC DDR4 8GB 2400 - V-GeN Platinum", "qty": 1, "harga": 461050}, {"nama": "RAM PC DDR4 8GB 2666 - Micron", "qty": 5, "harga": 461050}], "total": 4610500}];
+var USED={},CUR_PUR=null;
+function shortTgl(iso){var m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/);var b=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];return m?(+m[3])+' '+b[+m[2]-1]:iso;}
+function fillBMSelect(){
+  var sel=document.getElementById('f_bm');
+  sel.innerHTML='<option value="">— Pilih transaksi —</option>'+BM.map(function(t){
+    var who=t.d.split('/')[0].trim();
+    return '<option value="'+t.pur+'"'+(USED[t.pur]?' disabled':'')+'>'+t.pur+' · '+shortTgl(t.tgl)+' · '+esc(who)+' · '+rp(t.total)+(USED[t.pur]?' (sudah dibuat nota)':'')+'</option>';
+  }).join('');
+}
+function applyBM(pur){
+  var info=document.getElementById('bmInfo');
+  var t=BM.filter(function(x){return x.pur===pur;})[0];
+  if(!t){info.innerHTML='';CUR_PUR=null;return;}
+  CUR_PUR=pur;
+  var parts=t.d.split('/').map(function(x){return x.trim();}).filter(Boolean),first=parts[0]||'',ket;
+  ['f_sup','f_rek','f_bank','f_norek','f_mp'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('f_tgl').value=t.tgl;
+  var sel=document.getElementById('f_kanal');
+  if(isInvoice(first)){
+    sel.value='Marketplace';document.getElementById('f_mp').value=first;
+    var toko='';parts.slice(1).forEach(function(x){var m=x.match(MP_PREFIX);if(m&&!toko)toko=m[2].trim();});
+    document.getElementById('f_sup').value=toko;document.getElementById('f_rek').value='Rekening Marketplace';
+    ket='Marketplace · invoice '+first+(toko?' · toko '+toko:'');
+  }else{
+    sel.value='';document.getElementById('f_sup').value=first;document.getElementById('f_rek').value=first;
+    ket=first+' · pilih kanal WhatsApp / Datang Langsung';
+  }
+  onKanal();
+  document.getElementById('items').innerHTML='';t.items.forEach(function(it){addItem(it.nama,it.qty,it.harga);});
+  var tot=calc(),kQty=t.items.reduce(function(s,i){return s+i.k;},0);
+  info.innerHTML='<div class="msg ok">✓ '+t.items.length+' baris barang terisi · total <b>'+rp(tot)+'</b><br>'+esc(t.tglText)+' · Kolom C: '+esc(t.jenis)+' · '+esc(ket)+'</div>'+
+    (kQty?'<div class="msg warn">Ada '+kQty+' unit di kolom <b>K</b>. Total J × M = <b>'+rp(t.total)+'</b>, sedangkan total kolom N = <b>'+rp(t.totalN)+'</b>. Simulasi ini memakai J × M.</div>':'');
+  var pm=document.getElementById('pmsg');if(pm){pm.className='';pm.textContent='';}
+}
+function parsePaste(){
+  CUR_PUR=null;var bs=document.getElementById('f_bm');if(bs)bs.value='';var bi=document.getElementById('bmInfo');if(bi)bi.innerHTML='';
+  var lines=document.getElementById('f_paste').value.split(/\r?\n/).map(function(l){return l.replace(/[*_~]/g,'').trim();}).filter(Boolean);
+  var header=null,items=[],extra=0;
+  lines.forEach(function(l){var it=parseItemLine(l);if(it){if(!extra)items.push(it);return;}if(header===null)header=l;else if(items.length)extra++;});
+  var pm=document.getElementById('pmsg');
+  if(!items.length){pm.className='msg err';pm.textContent='Baris barang tidak terbaca. Format: kode NamaBarang (qty) harga';return;}
+  var parts=(header||'').split('/').map(function(x){return x.trim();}).filter(Boolean),first=parts[0]||'',info;
+  ['f_sup','f_rek','f_bank','f_norek','f_mp'].forEach(function(id){document.getElementById(id).value='';});
+  var sel=document.getElementById('f_kanal');
+  if(isInvoice(first)){
+    sel.value='Marketplace';document.getElementById('f_mp').value=first;
+    var toko='';parts.slice(1).forEach(function(x){var m=x.match(MP_PREFIX);if(m&&!toko)toko=m[2].trim();});
+    document.getElementById('f_sup').value=toko;document.getElementById('f_rek').value='Rekening Marketplace';
+    info='Marketplace · invoice '+first+(toko?' · toko '+toko:' · tanpa nama toko');
+  }else{
+    sel.value='';document.getElementById('f_sup').value=first;document.getElementById('f_rek').value=first;
+    info=first+' · pilih kanal WhatsApp / Datang Langsung secara manual';
+  }
+  onKanal();
+  document.getElementById('items').innerHTML='';items.forEach(function(it){addItem(it.nama,it.qty,it.harga);});
+  pm.className='msg ok';pm.textContent='✓ '+items.length+' barang terisi, total '+rp(calc())+'. '+info+'.'+(extra?' (Hanya blok pertama yang dipakai.)':'');
+}
+function fld(label,input){return '<label class="fld"><span>'+label+'</span>'+input+'</label>';}
+function onKanal(){
+  var k=document.getElementById('f_kanal').value,mp=k==='Marketplace';
+  document.getElementById('mpbox').hidden=!mp;
+  var lb=document.getElementById('suplbl');if(lb)lb.textContent=mp?'Nama toko (opsional)':'Nama supplier / penjual *';
+  var nr=document.getElementById('f_rek');if(nr){if(mp&&!nr.value)nr.value='Rekening Marketplace';if(!mp&&nr.value==='Rekening Marketplace')nr.value='';}
+}
+function addItem(nama,qty,harga,focus){
+  var d=document.createElement('div');d.className='it';
+  d.innerHTML='<button class="x" type="button" aria-label="Hapus barang">×</button>'+
+   '<div class="g-it">'+fld('Nama barang','<input class="i-n" value="'+esc(nama)+'" placeholder="cth: RAM DDR4 8GB">')+fld('Qty','<input class="i-q" inputmode="numeric" value="'+qty+'">')+'</div>'+
+   '<div class="g-it2">'+fld('Harga satuan (Rp)','<input class="i-h" inputmode="numeric" value="'+fmtNum(harga)+'">')+'<div class="i-s">Rp 0</div></div>';
+  document.getElementById('items').appendChild(d);
+  d.querySelector('.x').onclick=function(){d.remove();calc();};
+  d.querySelector('.i-q').oninput=calc;
+  d.querySelector('.i-h').oninput=function(){this.value=fmtNum(num(this.value));calc();};
+  if(focus)d.querySelector('.i-n').focus();
+  calc();
+}
+function readItems(){return Array.prototype.map.call(document.querySelectorAll('#items .it'),function(el){return {nama:el.querySelector('.i-n').value.trim(),qty:num(el.querySelector('.i-q').value),harga:num(el.querySelector('.i-h').value),el:el};});}
+function calc(){var tot=0;readItems().forEach(function(it){var s=it.qty*it.harga;tot+=s;it.el.querySelector('.i-s').textContent=rp(s);});
+  var te=document.getElementById('tot');if(te)te.textContent=rp(tot);return tot;}
+function waNorm(v){var s=String(v||'').replace(/\D/g,'');if(!s)return '';if(s[0]==='0')s='62'+s.slice(1);else if(s[0]==='8')s='62'+s;return s;}
+function aerr(s){var m=document.getElementById('amsg');m.className='msg err';m.textContent=s;}
+function saveNota(){
+  var v=function(id){return document.getElementById(id).value.trim();};
+  var items=readItems().filter(function(i){return i.nama&&i.qty>0;}).map(function(i){return {nama:i.nama,qty:i.qty,harga:i.harga,subtotal:i.qty*i.harga};});
+  if(!v('f_tgl'))return aerr('Tanggal nota wajib diisi.');
+  if(!v('f_kanal'))return aerr('Pilih kanal transaksi dulu (Marketplace / Datang Langsung / WhatsApp).');
+  if(v('f_kanal')==='Marketplace'&&!v('f_mp'))return aerr('No. invoice marketplace wajib diisi.');
+  if(!v('f_sup')&&v('f_kanal')!=='Marketplace')return aerr('Nama supplier wajib diisi.');
+  if(!v('f_rek'))return aerr('Nama rekening wajib diisi.');
+  if(!items.length)return aerr('Isi minimal 1 barang (nama dan qty).');
+  var total=items.reduce(function(s,i){return s+i.subtotal;},0);
+  if(!document.getElementById('f_ok').checked)return aerr('Centang dulu konfirmasi: barang sudah dites normal & sudah ditransfer lunas.');
+  var kanal=v('f_kanal'),mp=kanal==='Marketplace';
+  var t={noNota:'PGN-'+v('f_tgl').replace(/-/g,'')+'-001',tanggal:v('f_tgl'),supplier:v('f_sup'),waSupplier:waNorm(v('f_wa')),namaRek:v('f_rek'),bank:v('f_bank'),noRek:v('f_norek'),
+    kanal:kanal,noTrxMp:mp?v('f_mp'):'',keterangan:'',items:items,total:total};
+  t.kanalText=t.kanal+(t.noTrxMp?', No. Invoice '+t.noTrxMp:'');
+  t.pur=CUR_PUR;if(CUR_PUR)USED[CUR_PUR]=1;
+  DATA=t;var b=document.getElementById('save');b.disabled=true;b.textContent='Menyimpan…';
+  setTimeout(viewLink,500);
+}
+var LINK='https://script.google.com/macros/s/AKfycbx…/exec?t=k7Qm2xPz9a';
+function who(){return DATA.supplier||('invoice '+DATA.noTrxMp);}
+function waText(){return 'Halo'+(DATA.supplier?' '+DATA.supplier:'')+', berikut Nota & Surat Pernyataan transaksi dengan PGNet (No. '+DATA.noNota+').\n\nMohon dibuka, dicek, lalu tanda tangan 2x (nota & surat pernyataan), kemudian tekan tombol kirim PDF ke WhatsApp PGNet.\n\n';}
+function viewLink(){
+  step(2);
+  app.innerHTML='<div class="card"><div class="done-ic">✓</div><h2 class="center">Nota tersimpan</h2>'+
+   '<table class="info"><tr><td>No. Nota</td><td><b>'+DATA.noNota+'</b></td></tr>'+(DATA.pur?'<tr><td>Ref. Barang Masuk</td><td>'+DATA.pur+'</td></tr>':'')+'<tr><td>'+(DATA.kanal==='Marketplace'?'Toko':'Supplier')+'</td><td>'+(esc(DATA.supplier)||'— (tanpa nama)')+'</td></tr><tr><td>Kanal</td><td>'+esc(DATA.kanalText)+'</td></tr><tr><td>Total</td><td>'+rp(DATA.total)+' (lunas)'+'</td></tr><tr><td>Status</td><td><span class="badge">Menunggu TTD</span></td></tr></table>'+
+   '<div class="padhead">Link khusus untuk supplier</div><div class="linkbox">'+LINK+'</div>'+
+   '<button class="btn btn-wa" type="button" id="kirim">Kirim ke WA supplier</button><button class="btn btn-ghost" type="button" id="balik">← Ubah nota</button>'+
+   '<div class="msg" id="bgst"></div>'+
+   '<p class="hint">Di aplikasi asli, tombol hijau membuka WhatsApp ke nomor '+(DATA.waSupplier||'supplier')+' dengan pesan dan link yang sudah terisi. Penyimpanan ke sheet berjalan di latar belakang, jadi link bisa langsung dikirim.</p></div>';
+  document.getElementById('kirim').onclick=viewChat;
+  simSave();
+  if(DATA&&DATA._saved){document.getElementById('balik').textContent='← Kembali ke daftar';document.getElementById('balik').onclick=function(){DATA._saved=false;viewAdmin();};}
+  else document.getElementById('balik').onclick=function(){if(DATA&&DATA.pur){delete USED[DATA.pur];delete DONE[DATA.pur];}viewAdmin();};
+}
+
+function simSave(){
+  var el=document.getElementById('bgst');if(!el)return;
+  if(DATA&&DATA._saved){var dn=DONE[DATA.pur];el.className='msg ok';el.textContent='✓ Sudah dibuat · No. Nota '+DATA.noNota+' · Status: '+(dn?dn.status:'');return;}
+  el.className='msg warn';el.textContent='⟳ Menyimpan di latar belakang…';
+  var willFail=SIM_FAIL;SIM_FAIL=false;
+  setTimeout(function(){var e=document.getElementById('bgst');if(!e)return;
+    if(willFail){e.className='msg err';e.innerHTML='⚠ Gagal tersimpan (contoh: koneksi putus). Nota baru <b>ditahan</b> sampai ini dibereskan. <button type="button" class="btn btn-primary btn-sm" id="retry">Kirim ulang</button>';
+      document.getElementById('retry').onclick=simSave;}
+    else{e.className='msg ok';e.textContent='✓ Tersimpan · No. Nota '+DATA.noNota;}
+  },1300);
+}
+/* STEP 1 — pesan WA dari PGNet */
+function viewChat(){
+  step(3);
+  app.innerHTML='<div class="wa"><div class="wa-top"><div class="wa-ava">PG</div><div>PGNet<small>'+CFG.waTampil+'</small></div></div><div class="wa-body">'+
+   '<div class="bub in">'+esc(waText())+'<a class="lnk" id="lnk" tabindex="0">'+LINK+'</a>\n\nTerima kasih 🙏<span class="t">'+now()+'</span></div>'+
+   '</div></div><p class="hint center">Sekarang kamu jadi supplier ('+esc(who())+') yang baru menerima pesan ini dari PGNet. Ketuk link biru untuk membukanya.</p>';
+  var l=document.getElementById('lnk');l.onclick=viewSign;l.onkeydown=function(e){if(e.key==='Enter')viewSign();};
+}
+
+/* STEP 2 — halaman TTD */
+function viewSign(){
+  step(4);var t=DATA,isMp=t.kanal==='Marketplace',supLabel=isMp?'Nama Toko':'Nama Supplier / Penjual';
+  var rows=t.items.map(function(it,i){return '<tr><td class="c">'+(i+1)+'</td><td>'+esc(it.nama)+'</td><td class="c">'+it.qty+'</td><td class="r">'+rp(it.harga)+'</td><td class="r">'+rp(it.subtotal)+'</td></tr>';}).join('');
+  app.innerHTML=
+  '<div class="card"><span class="pill">Halaman 1 dari 2</span><div><h2>NOTA PEMBELIAN</h2><div class="muted">PGNet · Bogor</div></div>'+
+   '<table class="info"><tr><td>No. Nota</td><td><b>'+esc(t.noNota)+'</b></td></tr><tr><td>Tanggal</td><td>'+tgl(t.tanggal)+'</td></tr>'+(t.supplier?'<tr><td>'+supLabel+'</td><td>'+esc(t.supplier)+'</td></tr>':'')+'<tr><td>Nama Rekening</td><td>'+rek(t)+'</td></tr><tr><td>Transaksi melalui</td><td>'+esc(t.kanalText)+'</td></tr><tr><td>Pembayaran</td><td><b>LUNAS</b>, '+(isMp?'dibayar melalui marketplace':'ditransfer ke rekening di atas')+'</td></tr></table>'+
+   '<div class="tblwrap"><table class="items"><tr><th class="c">No</th><th>Barang</th><th class="c">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>'+rows+
+   (t.subtotal&&t.total>t.subtotal?'<tr class="tot"><td colspan="4" class="r">Total barang</td><td class="r">'+rp(t.subtotal)+'</td></tr><tr class="tot"><td colspan="4" class="r" style="font-weight:400">Ditransfer PGNet</td><td class="r" style="font-weight:400">'+rp(t.total)+'</td></tr><tr class="tot"><td colspan="4" class="r" style="font-weight:400">Sisa dana di penjual</td><td class="r" style="font-weight:400">'+rp(t.total-t.subtotal)+'</td></tr>':
+   t.subtotal&&t.subtotal!==t.total?'<tr class="tot"><td colspan="4" class="r" style="font-weight:400">Subtotal barang</td><td class="r" style="font-weight:400">'+rp(t.subtotal)+'</td></tr><tr class="tot"><td colspan="4" class="r" style="font-weight:400">'+(t.total<t.subtotal?'Potongan (ongkir, dll.)':'Tambahan')+'</td><td class="r" style="font-weight:400">'+(t.total<t.subtotal?'−':'+')+rp(Math.abs(t.subtotal-t.total))+'</td></tr><tr class="tot"><td colspan="4" class="r">Total Dibayar</td><td class="r">'+rp(t.total)+'</td></tr>':'<tr class="tot"><td colspan="4" class="r">Total</td><td class="r">'+rp(t.total)+'</td></tr>')+'</table></div>'+
+   '<div class="padhead">✍️ Tanda tangan 1: Nota <button class="btn btn-ghost btn-sm" type="button" id="clr1">Hapus</button></div><canvas id="pad1" aria-label="Kotak tanda tangan nota"></canvas><div class="hint">Tanda tangan pakai jari di kotak ini.</div></div>'+
+  '<div class="card"><span class="pill">Halaman 2 dari 2</span><div><h2>SURAT PERNYATAAN</h2><div class="muted">Keabsahan barang yang dijual</div></div>'+
+   '<p>Saya yang bertanda tangan di bawah ini:</p><table class="info">'+(t.supplier?'<tr><td>'+supLabel+'</td><td>'+esc(t.supplier)+'</td></tr>':'')+(t.waSupplier?'<tr><td>No. WhatsApp</td><td>'+esc(t.waSupplier)+'</td></tr>':'')+'<tr><td>Nama Rekening</td><td>'+rek(t)+'</td></tr></table>'+
+   '<p>menyatakan dengan sebenarnya bahwa barang yang saya jual kepada <b>PGNet</b> sebagaimana tercantum dalam <b>Nota No. '+esc(t.noNota)+'</b> tanggal '+tgl(t.tanggal)+' (transaksi melalui '+esc(t.kanalText)+') adalah:</p>'+
+   '<ol><li>Milik saya yang sah atau saya peroleh dengan cara yang sah;</li><li><b>Bukan barang hasil curian</b>, penggelapan, penipuan, penadahan, atau hasil tindak pidana lainnya;</li><li>Tidak sedang dalam sengketa, dijaminkan, atau disita oleh pihak mana pun.</li></ol>'+
+   (t.subtotal&&t.total>t.subtotal?'<p>Saya telah menerima pembayaran sebesar <b>'+rp(t.total)+'</b> '+(isMp?'melalui marketplace':'melalui transfer ke rekening di atas')+' untuk barang senilai <b>'+rp(t.subtotal)+'</b>, dengan <b>sisa dana di penjual sebesar '+rp(t.total-t.subtotal)+'</b>.</p>':'<p>Saya telah menerima pembayaran atas barang tersebut secara <b>lunas</b> sebesar <b>'+rp(t.total)+'</b> '+(isMp?'melalui marketplace':'melalui transfer ke rekening di atas')+'.</p>')+
+   '<p>Apabila di kemudian hari terbukti pernyataan ini tidak benar, saya bersedia bertanggung jawab sepenuhnya secara hukum dan membebaskan PGNet dari segala tuntutan pihak mana pun.</p>'+
+   '<p>Demikian surat pernyataan ini saya buat dengan sadar, sebenar-benarnya, dan tanpa paksaan dari pihak mana pun.</p><p class="muted">Bogor, '+tgl(t.tanggal)+'</p>'+
+   '<div class="padhead">✍️ Tanda tangan 2: Surat Pernyataan <button class="btn btn-ghost btn-sm" type="button" id="clr2">Hapus</button></div><canvas id="pad2" aria-label="Kotak tanda tangan surat pernyataan"></canvas></div>'+
+  '<div class="card"><label class="check"><input type="checkbox" id="agree"><span>Saya sudah membaca nota dan surat pernyataan di atas, dan menyatakan isinya benar.</span></label>'+
+   '<button class="btn btn-primary" type="button" id="go">Tanda Tangan &amp; Buat PDF</button><div id="msg"></div></div>';
+  pads.a=makePad(document.getElementById('pad1'));pads.b=makePad(document.getElementById('pad2'));
+  document.getElementById('clr1').onclick=pads.a.clear;document.getElementById('clr2').onclick=pads.b.clear;
+  document.getElementById('go').onclick=submit;
+}
+function makePad(cv){
+  var ctx=cv.getContext('2d'),drawing=false,last=null,empty=true;
+  function setup(){var r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0b1b33';ctx.fillStyle='#0b1b33';empty=true;cv.classList.remove('signed');}
+  function pos(e){var r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+  cv.addEventListener('pointerdown',function(e){e.preventDefault();drawing=true;last=pos(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}ctx.beginPath();ctx.arc(last.x,last.y,1.1,0,7);ctx.fill();empty=false;cv.classList.add('signed');});
+  cv.addEventListener('pointermove',function(e){if(!drawing)return;e.preventDefault();var p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;});
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){cv.addEventListener(ev,function(){drawing=false;});});
+  setup();window.addEventListener('resize',function(){if(empty)setup();});
+  return {clear:function(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);setup();},isEmpty:function(){return empty;},
+    png:function(){var w=600,h=Math.round(cv.height*w/cv.width),o=document.createElement('canvas');o.width=w;o.height=h;var c=o.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,w,h);c.drawImage(cv,0,0,w,h);return o.toDataURL('image/png');}};
+}
+function err(s,el){var m=document.getElementById('msg');m.className='msg err';m.textContent=s;if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}
+function submit(){
+  if(pads.a.isEmpty())return err('Tanda tangan 1 (Nota) belum diisi.',document.getElementById('pad1'));
+  if(pads.b.isEmpty())return err('Tanda tangan 2 (Surat Pernyataan) belum diisi.',document.getElementById('pad2'));
+  if(!document.getElementById('agree').checked)return err('Centang dulu pernyataan di atas tombol.');
+  var b=document.getElementById('go');b.disabled=true;b.textContent='Membuat PDF…';
+  var d=new Date(),signedAt='2026-10-18 '+('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2);
+  var html=PDFLIB.build(DATA,pads.a.png(),pads.b.png(),signedAt);
+  setTimeout(function(){RES={html:html,file:'Nota & Pernyataan '+DATA.noNota+' - '+who()+'.pdf'};viewDone();},700);
+}
+
+/* STEP 3 — berhasil */
+function viewDone(){
+  step(5);
+  app.innerHTML='<div class="card"><div class="done-ic">✓</div><h2 class="center">Berhasil ditandatangani</h2><p class="muted center">Langkah terakhir: kirim PDF ke WhatsApp PGNet ('+CFG.waTampil+').</p>'+
+   '<button class="btn btn-wa" type="button" id="send">📤 Kirim PDF ke WhatsApp PGNet</button><button class="btn btn-ghost" type="button" id="see">Lihat PDF</button></div>'+
+   '<div id="pv"></div>';
+  document.getElementById('send').onclick=viewSent;
+  document.getElementById('see').onclick=function(){showPaper(document.getElementById('pv'));this.hidden=true;};
+}
+function showPaper(box){
+  box.innerHTML='<div class="card"><div class="padhead">Isi PDF (2 halaman)</div><div id="paper"></div><p class="hint">Di aplikasi asli, file PDF ini juga tersimpan otomatis di Google Drive PGNet.</p></div>';
+  var m=RES.html.match(/<style>([\s\S]*?)<\/style>[\s\S]*<body>([\s\S]*)<\/body>/);
+  var host=document.getElementById('paper'),sh=host.attachShadow?host.attachShadow({mode:'open'}):host;
+  sh.innerHTML='<style>'+m[1].replace('body{','.paper{')+'.paper{background:#fff;color:#111;padding:20px 16px;font-size:13px;overflow-x:auto}.page+.page{border-top:10px solid #c9d1dc;margin:18px -16px 0;padding:18px 16px 4px}.sig img{width:170px}h1{font-size:18px}.paper table,.paper td,.paper th{color:#111}.paper .items th{color:#111}.paper .items td{font-size:11.5px}</style><div class="paper">'+m[2]+'</div>';
+}
+
+/* STEP 4 — PDF masuk WA PGNet */
+function viewSent(){
+  step(6);if(DATA&&DATA.pur&&DONE[DATA.pur])DONE[DATA.pur].status='Sudah TTD';
+  app.innerHTML='<div class="wa"><div class="wa-top"><div class="wa-ava">PG</div><div>PGNet<small>'+CFG.waTampil+'</small></div></div><div class="wa-body">'+
+   '<div class="bub out"><div class="doc"><div class="ic">PDF</div><div><b>'+esc(RES.file)+'</b><div style="font-size:12px;opacity:.7">2 halaman · PDF</div></div></div>Halo PGNet, saya '+esc(DATA.supplier||('penjual invoice '+DATA.noTrxMp))+' sudah menandatangani Nota &amp; Surat Pernyataan No. '+esc(DATA.noNota)+'.<span class="t">'+now()+' ✓✓</span></div>'+
+   '</div></div>'+
+   '<div class="card"><div class="msg ok">Selesai. Di aplikasi asli, status nota ini berubah jadi <b>Sudah TTD</b> di daftar admin, PDF-nya tersimpan di Drive, dan nota tidak bisa diubah lagi.</div>'+
+   '<p class="hint">Di HP sungguhan, tombol kirim membuka menu Bagikan, lalu supplier memilih WhatsApp → PGNet. Kalau HP-nya tidak mendukung, PDF terunduh dulu, lalu supplier melampirkannya di chat PGNet.</p>'+
+   '<div class="row"><button class="btn btn-ghost" type="button" id="see2">Lihat isi PDF</button><button class="btn btn-primary" type="button" id="again">Ulangi simulasi</button></div><div id="pv2"></div></div>';
+  document.getElementById('see2').onclick=function(){showPaper(document.getElementById('pv2'));this.hidden=true;};
+  document.getElementById('again').onclick=restart;
+}
+function restart(){DATA=makeData();RES=null;USED={};DONE={};LIST_TAB='belum';bStep=1;bT=null;cT=null;viewAdmin();}
+/* ===== 3 TAMPILAN ADMIN ===== */
+var MODE='A', bStep=1, bT=null, cT=null;
+function modeBar(){
+  return '<div class="modes"><button type="button" class="linkbtn" data-m="'+(MODE==='form'?'A':'form')+'">'+(MODE==='form'?'← Kembali ke daftar Barang Masuk':'Buat manual / tempel dari WA')+'</button></div>';
+}
+function bindMode(){document.querySelectorAll('[data-m]').forEach(function(b){b.onclick=function(){MODE=b.getAttribute('data-m');viewAdmin();};});}
+function bmParse(t){
+  var platform=String(t.jenis||'').trim(),direct=!platform||/^direct$/i.test(platform);
+  var parts=t.d.split('/').map(function(s){return s.trim();}).filter(Boolean),first=parts[0]||'';
+  if(isInvoice(first)){var toko='';parts.slice(1).forEach(function(x){var m=x.match(MP_PREFIX);if(m&&!toko)toko=m[2].trim();});return {mp:true,platform:direct?'':platform,inv:first,nama:toko,rek:'Rekening Marketplace'};}
+  if(!direct){var m=first.match(MP_PREFIX);return {mp:true,platform:platform,inv:'',nama:m?m[2].trim():first,rek:'Rekening Marketplace'};}
+  return {mp:false,platform:'',inv:'',nama:first,rek:first};
+}
+function bmTitle(t){return t.d;}
+function bmByPur(pur){return BM.filter(function(x){return x.pur===pur;})[0];}
+function makeNota(t,kanal,wa,totalBayar){
+  var p=bmParse(t),items=t.items.map(function(i){return {nama:i.nama,qty:i.qty,harga:i.harga,subtotal:i.qty*i.harga};});
+  var sub=items.reduce(function(s,i){return s+i.subtotal;},0);
+  var d={noNota:'PGN-'+t.tgl.replace(/-/g,'')+'-001',tanggal:t.tgl,supplier:p.nama,waSupplier:waNorm(wa),namaRek:p.rek,bank:'',noRek:'',
+    kanal:p.mp?'Marketplace':kanal,noTrxMp:p.inv,keterangan:p.platform,items:items,subtotal:sub,total:totalBayar||sub,pur:t.pur};
+  d.kanalText=(d.kanal==='Marketplace'&&d.keterangan?d.keterangan:d.kanal)+(d.noTrxMp?', No. Invoice '+d.noTrxMp:'');return d;
+}
+function tagCls(j){return /^direct$/i.test(j||'')?'tag-ln':'tag-mp';}
+function txListHTML(q){
+  var list=BM.filter(function(t){return !USED[t.pur];});
+  if(q){q=q.toLowerCase();list=list.filter(function(t){return (t.pur+' '+t.d+' '+t.jenis+' '+t.items.map(function(i){return i.nama;}).join(' ')).toLowerCase().indexOf(q)>=0;});}
+  if(!list.length)return '<div class="empty">Tidak ada transaksi yang cocok.</div>';
+  var out='',last='';
+  list.forEach(function(t){
+    if(t.tgl!==last){last=t.tgl;out+='<div class="daylbl">'+esc(t.tglText)+'</div>';}
+    out+='<button type="button" class="tx" data-p="'+t.pur+'"><span class="tx-l"><span class="tx-name">'+esc(t.d)+'</span><span class="tx-meta">'+t.pur+' · '+t.items.length+' barang</span></span>'+
+      '<span class="tx-r"><span class="tx-tot">'+rp(t.total)+'</span><span class="tag '+tagCls(t.jenis)+'">'+esc(t.jenis||'-')+'</span></span></button>';
+  });
+  return out;
+}
+function bindTx(fn){document.querySelectorAll('.tx').forEach(function(b){b.onclick=function(){fn(bmByPur(b.getAttribute('data-p')));};});}
+function detailHTML(t,compact){
+  var p=bmParse(t);
+  return '<div class="sumc">'+
+    '<div class="sum-head"><div class="muted">'+t.pur+' · '+esc(t.tglText)+'</div><div class="sum-name">'+esc(t.d)+'</div>'+
+    '<div class="muted">'+(p.mp?esc(p.platform||'Marketplace')+(p.inv?' · Invoice '+esc(p.inv):'')+(p.nama?' · Toko '+esc(p.nama):''):'Nama rekening: '+esc(p.rek))+'</div></div>'+
+    '<div class="sum-items'+(compact?' compact':'')+'">'+t.items.map(function(i){return '<div class="sum-it"><span class="n">'+esc(i.nama)+'</span><span class="q">'+i.qty+'×</span><span class="s">'+rp(i.qty*i.harga)+'</span></div>';}).join('')+'</div>'+
+    '<div class="sum-tot"><span>Subtotal barang</span><b>'+rp(t.total)+'</b></div></div>';
+}
+function inputsHTML(t){
+  var p=bmParse(t);
+  return '<div class="inp">'+fld('Total dibayar (sesuai transfer) *','<input id="q_tot" inputmode="numeric" value="'+fmtNum(t.total)+'">')+'<div class="hint" id="q_diff">Sama dengan subtotal barang.</div>'+
+    '<button type="button" class="linkbtn" id="q_sdemo" style="margin-top:2px">Isi contoh: transfer lebih Rp 1.000.000</button>'+
+    (p.mp?'<div class="kfix">Transaksi melalui: <b>'+esc(p.platform||'Marketplace')+'</b> <span class="muted">(otomatis)</span></div>':
+    '<div class="flbl">Transaksi melalui *</div><div class="chipsel" id="kch">'+['WhatsApp','Datang Langsung'].map(function(k){return '<button type="button" class="cs" data-k="'+k+'">'+k+'</button>';}).join('')+'</div>')+
+    (p.mp?'':(function(){var rk=SIM_REK[String(t.d).toLowerCase()]||{};return '<div class="rekbox"><div class="rekttl">Rekening penjual <span class="muted">(wajib)</span>'+(rk.noRek?' <span class="rekauto">terisi dari nota sebelumnya</span>':'')+'</div>'+
+      fld('Nama rekening *','<input id="q_nr" value="'+esc(rk.namaRek||p.rek||'')+'" autocomplete="off">')+
+      '<div class="rek2">'+fld('Bank *','<input id="q_bank" list="bankList" value="'+esc(rk.bank||'')+'" placeholder="BCA / BRI / DANA…" autocomplete="off">')+fld('No. rekening *','<input id="q_no" inputmode="numeric" value="'+esc(rk.noRek||'')+'" autocomplete="off">')+'</div>'+
+      '<datalist id="bankList">'+['BCA','BRI','BNI','Mandiri','BSI','CIMB Niaga','Permata','Danamon','BTN','SeaBank','Bank Jago','blu by BCA','DANA','OVO','GoPay','ShopeePay'].map(function(b){return '<option value="'+b+'">';}).join('')+'</datalist></div>';})())+
+    fld('No. WhatsApp supplier','<input id="q_wa" inputmode="tel" placeholder="08xxxxxxxxxx">')+
+    '<label class="check"><input type="checkbox" id="q_ok"><span>Barang <b>sudah dites normal</b> &amp; <b>sudah ditransfer lunas</b>.</span></label><div id="q_err"></div></div>';
+}
+var KSEL=null,SIM_REK={};
+function bindInputs(t){
+  var qn=document.getElementById('q_no');if(qn)qn.oninput=function(){this.value=this.value.replace(/[^\d]/g,'');};
+  KSEL=null;
+  document.querySelectorAll('#kch .cs').forEach(function(b){b.onclick=function(){document.querySelectorAll('#kch .cs').forEach(function(x){x.classList.remove('on');});b.classList.add('on');KSEL=b.getAttribute('data-k');var e=document.getElementById('q_err');e.className='';e.textContent='';};});
+  var sd=document.getElementById('q_sdemo');if(sd&&t)sd.onclick=function(){var x=document.getElementById('q_tot');x.value=fmtNum(t.total+1000000);x.oninput();};
+  var ti=document.getElementById('q_tot');if(ti&&t){ti.oninput=function(){this.value=fmtNum(num(this.value));var v=num(this.value),d=v-t.total;document.getElementById('q_diff').textContent=!v?'':d===0?'Sama dengan subtotal barang.':d<0?'Selisih −'+rp(-d).slice(3)+' (ongkir/potongan) — akan tercetak di nota.':'Lebih +'+rp(d).slice(3)+' → tercetak di nota sebagai “Sisa dana di penjual”.';};}
+}
+function submitFrom(t){
+  var p=bmParse(t),e=document.getElementById('q_err'),k=p.mp?'Marketplace':KSEL,tot=num(document.getElementById('q_tot').value);
+  if(!k){e.className='msg err';e.textContent='Pilih dulu: WhatsApp atau Datang Langsung.';return false;}
+  if(!tot){e.className='msg err';e.textContent='Isi total dibayar sesuai transfer.';return false;}
+  var rk=null;
+  if(!p.mp){rk={namaRek:document.getElementById('q_nr').value.trim(),bank:document.getElementById('q_bank').value.trim(),noRek:document.getElementById('q_no').value.replace(/[^\d]/g,'')};
+    if(!rk.namaRek){e.className='msg err';e.textContent='Isi nama rekening penjual.';return false;}
+    if(!rk.bank){e.className='msg err';e.textContent='Isi bank penjual.';return false;}
+    if(rk.noRek.length<6){e.className='msg err';e.textContent='Isi no. rekening penjual (minimal 6 angka).';return false;}}
+  if(!document.getElementById('q_ok').checked){e.className='msg err';e.textContent='Centang dulu: barang sudah dites & sudah ditransfer.';return false;}
+  var d=makeNota(t,k,document.getElementById('q_wa').value,tot);
+  if(rk){d.namaRek=rk.namaRek;d.bank=rk.bank;d.noRek=rk.noRek;SIM_REK[String(t.d).toLowerCase()]=rk;}
+  USED[d.pur]=1;DONE[d.pur]={data:d,status:'Menunggu TTD'};DATA=d;closeSheet();setTimeout(viewLink,250);return true;
+}
+function note(){return '<p class="hint demo-note">Contoh data Juli & Oktober. Di aplikasi asli: daftar mulai 27 Oktober 2026 (untuk lihat hasil), pengingat DIRECT wajib nota mulai 1 November 2026.</p>'+
+  '<label class="check" style="font-size:12.5px"><input type="checkbox" id="failToggle"'+(SIM_FAIL?' checked':'')+'><span>Uji coba: buat simpan berikutnya <b>gagal</b> (untuk melihat penanganan gagal)</span></label>';}
+var SIM_FAIL=false;
+function searchHTML(id){return '<div class="search"><span aria-hidden="true">🔍</span><input id="'+id+'" type="search" placeholder="Cari nama, No. PUR, invoice, barang…" aria-label="Cari transaksi"></div>';}
+
+/* --- A: Kartu + lembar bawah --- */
+var LIST_TAB='belum', LAYOUT='geser', SIM_PAGE=null, DONE={}, PULL_H=null;
+/* ===== Peringatan DIRECT wajib nota (3 contoh) ===== */
+var WARN_MODE='popup', POP_DONE=false, ONLY_DIRECT=false;
+function isDir(t){return /^direct$/i.test(t.jenis||'');}
+function ageDays(t){var d=new Date(),t0=new Date(d.getFullYear(),d.getMonth(),d.getDate()),m=String(t.tgl).split('-');var t1=new Date(+m[0],+m[1]-1,+m[2]);return Math.max(0,Math.round((t0-t1)/864e5));}
+function ageLabel(n){return n===0?'hari ini':n===1?'sejak kemarin':n+' hari';}
+function lvl(n){return n===0?'w1':n===1?'w2':'w3';}
+function pendingDirect(){return BM.filter(function(t){return isDir(t)&&!USED[t.pur];}).sort(function(a,b){return a.tgl<b.tgl?-1:a.tgl>b.tgl?1:0;});}
+function warnPick(){
+  return '<div class="demo-pick"><span>Contoh peringatan DIRECT wajib nota:</span><div class="seg2 three">'+
+    [['banner','① Banner'],['label','② Label umur'],['popup','③ Pop-up']].map(function(x){return '<button type="button" class="s2'+(WARN_MODE===x[0]?' on':'')+'" data-warn="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div></div>';
+}
+function warnBanner(){
+  var p=pendingDirect();if(WARN_MODE!=='banner'||!p.length)return '';
+  var old=p[0],n=ageDays(old);
+  return '<div class="warnbox '+lvl(n)+'"><div class="wb-t">⚠ '+p.length+' transaksi DIRECT belum dikirim nota</div>'+
+    '<div class="wb-s">Terlama: '+esc(old.tglText)+' ('+ageLabel(n)+'). DIRECT <b>wajib</b> dikirim nota &amp; surat pernyataan.</div>'+
+    '<div class="wb-a"><button type="button" class="btn btn-sm wb-btn" data-act="oldest">Ke yang terlama →</button><button type="button" class="btn btn-sm btn-ghost" data-act="only">'+(ONLY_DIRECT?'Tampilkan semua':'Hanya DIRECT')+'</button></div></div>';
+}
+function ageChip(t){
+  if(WARN_MODE!=='label'||!isDir(t)||USED[t.pur])return '';
+  var n=ageDays(t);return '<span class="age '+lvl(n)+'">⏰ Belum kirim nota · '+ageLabel(n)+'</span>';
+}
+function popupWarn(){
+  var p=pendingDirect();if(WARN_MODE!=='popup'||POP_DONE||!p.length)return;
+  var old=p[0],n=ageDays(old);
+  var w=document.createElement('div');w.id='popwarn';
+  w.innerHTML='<div class="dim"></div><div class="pop" role="dialog" aria-label="Pengingat nota DIRECT">'+
+    '<div class="pop-ic '+lvl(n)+'">!</div><div class="sum-name" style="text-align:center">'+p.length+' transaksi DIRECT belum dikirim nota</div>'+
+    '<p class="muted" style="text-align:center;margin:0">Sejak 1 November, setiap transaksi DIRECT <b>wajib</b> dikirim nota &amp; surat pernyataan. Ini yang paling lama:</p>'+
+    '<div class="pop-list">'+p.slice(0,5).map(function(t){var a=ageDays(t);return '<div class="pop-it"><div><b>'+esc(t.d)+'</b><div class="muted">'+esc(t.tglText)+' · '+rp(t.total)+'</div><span class="age '+lvl(a)+'">'+ageLabel(a)+'</span></div><button type="button" class="btn btn-primary btn-sm" data-go="'+t.pur+'">Buat nota</button></div>';}).join('')+
+    (p.length>5?'<div class="muted" style="text-align:center">+'+(p.length-5)+' lainnya</div>':'')+'</div>'+
+    '<button type="button" class="btn btn-ghost" id="popLater">Nanti saja (ingatkan lagi saat dibuka)</button></div>';
+  document.body.appendChild(w);
+  function close(){POP_DONE=true;w.remove();}
+  w.querySelector('#popLater').onclick=close;w.querySelector('.dim').onclick=close;
+  w.querySelectorAll('[data-go]').forEach(function(b){b.onclick=function(){close();openSheet(bmByPur(b.getAttribute('data-go')));};});
+}
+function bindWarn(){
+  document.querySelectorAll('[data-warn]').forEach(function(b){b.onclick=function(){WARN_MODE=b.getAttribute('data-warn');POP_DONE=false;ONLY_DIRECT=false;viewA();};});
+  document.querySelectorAll('[data-act]').forEach(function(b){b.onclick=function(){
+    var a=b.getAttribute('data-act');
+    if(a==='only'){ONLY_DIRECT=!ONLY_DIRECT;viewA();}
+    if(a==='oldest'){var p=pendingDirect();if(p.length){LIST_TAB='belum';SIM_PAGE=p[0].tgl;viewA();}}
+    if(a==='pop'){POP_DONE=false;popupWarn();}
+  };});
+}
+function cardHTML(t){
+  var d=DONE[t.pur];
+  var lv=(WARN_MODE==='label'&&!d&&isDir(t))?' '+lvl(ageDays(t)):'';
+  return '<button type="button" class="tx'+(d?' tx-done':/^direct$/i.test(t.jenis)?' tx-direct'+lv:'')+'" data-p="'+t.pur+'"><span class="tx-l"><span class="tx-name">'+esc(t.d)+'</span>'+
+    '<span class="tx-meta">'+t.pur+' · '+(d?esc(d.data.noNota)+' · '+esc(d.status):t.items.length+' barang')+'</span>'+ageChip(t)+'</span>'+
+    '<span class="tx-r"><span class="tx-tot">'+rp(d?d.data.total:t.total)+'</span>'+
+    (d?'<span class="tag tag-done">✓ Sudah dibuat</span>':'<span class="tag '+tagCls(t.jenis)+'">'+esc(t.jenis||'-')+'</span>')+'</span></button>';
+}
+function listNow(){
+  var q=(document.getElementById('sa')||{}).value||'';q=q.toLowerCase();
+  return BM.filter(function(t){
+    return true;
+    return !q||(t.pur+' '+t.d+' '+t.jenis+' '+t.items.map(function(i){return i.nama;}).join(' ')).toLowerCase().indexOf(q)>=0;
+  });
+}
+function viewA(){
+  var nb=BM.filter(function(t){return !USED[t.pur];}).length, ns=BM.length-nb;
+  var ctrl='<div class="seg3"><button type="button" class="s3'+(LIST_TAB==='belum'?' on':'')+'" data-tab="belum">Belum dibuat <b>'+nb+'</b></button><button type="button" class="s3'+(LIST_TAB==='sudah'?' on':'')+'" data-tab="sudah">✓ Sudah dibuat <b>'+ns+'</b></button></div>'+searchHTML('sa');
+  app.innerHTML=modeBar()+
+   '<div class="card"><div class="ttl">Barang Masuk'+(pendingDirect().length?'<button type="button" class="warnpill" data-act="pop">⚠ '+pendingDirect().length+' DIRECT</button>':'')+'</div>'+note()+
+
+   '<button type="button" class="btn btn-ghost kitbtn" data-act="kit">💬 Chat ke penjual · template &amp; video</button>'+
+   '<div class="cnt">'+nb+' belum dibuat nota</div></div>'+
+   (LAYOUT==='tarik'
+     ?'<div class="pull-space"></div><div id="pull" class="pull"><div class="pull-h" id="pullH" aria-label="Tarik ke atas atau ke bawah"><div class="grab2"></div><div class="pull-t" id="pullT"></div></div><div class="pull-c">'+ctrl+'</div><div class="pull-b" id="la"></div></div>'
+     :'<div class="card geser"><div class="dates" id="dates"></div><div class="pages" id="la"></div><div class="hint" style="text-align:center">Geser kiri / kanan untuk pindah tanggal · DIRECT di atas · yang sudah dibuat nota di paling bawah</div></div>');
+  bindMode();
+  var ft=document.getElementById('failToggle');if(ft)ft.onchange=function(){SIM_FAIL=this.checked;};
+  document.querySelectorAll('[data-lay]').forEach(function(b){b.onclick=function(){LAYOUT=b.getAttribute('data-lay');viewA();};});
+  document.querySelectorAll('[data-tab]').forEach(function(b){b.onclick=function(){LIST_TAB=b.getAttribute('data-tab');SIM_PAGE=null;document.querySelectorAll('[data-tab]').forEach(function(x){x.classList.toggle('on',x===b);});fillList();};});
+  bindWarn();
+  var kb=document.querySelector('[data-act="kit"]');if(kb)kb.onclick=openKit;
+  fillList();
+  setTimeout(popupWarn,250);
+  if(LAYOUT==='tarik')initPull();
+}
+function openCard(t){
+  var d=DONE[t.pur];
+  if(d){DATA=d.data;DATA._saved=true;viewLink();return;}
+  openSheet(t);
+}
+function fillList(){
+  var list=listNow(),box=document.getElementById('la');
+  var empty='<div class="empty">Belum ada transaksi.</div>';
+  if(LAYOUT==='tarik'){
+    var out='',last='';
+    list.forEach(function(t){if(t.tgl!==last){last=t.tgl;out+='<div class="daylbl">'+esc(t.tglText)+'</div>';}out+=cardHTML(t);});
+    box.innerHTML=out||empty;
+    document.getElementById('pullT').textContent=list.length+' transaksi · tarik garis ke atas / bawah';
+  }else{
+    var groups=[],idx={};
+    list.forEach(function(t){if(!(t.tgl in idx)){idx[t.tgl]=groups.length;groups.push({tgl:t.tgl,txt:t.tglText,items:[]});}groups[idx[t.tgl]].items.push(t);});
+    var rank=function(t){return USED[t.pur]?2:/^direct$/i.test(t.jenis)?0:1;};
+    groups.forEach(function(g){g.items.sort(function(a,b){return rank(a)-rank(b);});});
+    var cur=groups.map(function(g){return g.tgl;}).indexOf(SIM_PAGE);if(cur<0)cur=groups.length-1;
+    document.getElementById('dates').innerHTML=groups.map(function(g,i){var m=g.txt.split(','),dr=LIST_TAB==='belum'?g.items.filter(function(t){return /^direct$/i.test(t.jenis);}).length:0;return '<button type="button" class="dp'+(i===cur?' on':'')+'" data-i="'+i+'"><span>'+esc((m[0]||'').slice(0,3))+'</span><b>'+esc(shortTgl(g.tgl))+'</b></button>';}).join('');
+    box.innerHTML=groups.length?groups.map(function(g){return '<div class="page"><div class="daylbl">'+esc(g.txt)+'</div>'+g.items.map(cardHTML).join('')+'</div>';}).join(''):empty;
+    document.querySelectorAll('.dp').forEach(function(b){b.onclick=function(){var i=+b.getAttribute('data-i');box.scrollTo({left:i*box.clientWidth,behavior:'smooth'});};});
+    var st=null;box.onscroll=function(){clearTimeout(st);st=setTimeout(function(){var i=Math.round(box.scrollLeft/box.clientWidth);if(groups[i])SIM_PAGE=groups[i].tgl;document.querySelectorAll('.dp').forEach(function(b,j){b.classList.toggle('on',j===i);if(j===i&&b.scrollIntoView)b.scrollIntoView({block:'nearest',inline:'center',behavior:'smooth'});});},90);};
+    if(groups[cur]){SIM_PAGE=groups[cur].tgl;box.scrollLeft=cur*box.clientWidth;var ab=document.querySelector('.dp.on');if(ab)ab.scrollIntoView({block:'nearest',inline:'center'});}
+  }
+  bindTx(openCard);
+}
+function initPull(){
+  var p=document.getElementById('pull'),h=document.getElementById('pullH');
+  var vh=function(){return window.innerHeight;};
+  var snaps=function(){return [150,Math.round(vh()*0.55),Math.round(vh()*0.9)];};
+  if(PULL_H==null)PULL_H=snaps()[1];
+  p.style.height=PULL_H+'px';
+  var startY=0,startH=0,drag=false,moved=false;
+  h.addEventListener('pointerdown',function(e){drag=true;moved=false;startY=e.clientY;startH=p.offsetHeight;p.classList.add('dragging');try{h.setPointerCapture(e.pointerId);}catch(_){}});
+  h.addEventListener('pointermove',function(e){if(!drag)return;var dy=e.clientY-startY;if(Math.abs(dy)>4)moved=true;var nh=Math.max(110,Math.min(vh()*0.94,startH-dy));p.style.height=nh+'px';});
+  function end(){if(!drag)return;drag=false;p.classList.remove('dragging');var cur=p.offsetHeight,s=snaps();
+    if(!moved){var i=s.indexOf(PULL_H);cur=s[(i+1)%s.length]||s[1];}
+    var best=s.reduce(function(a,b){return Math.abs(b-cur)<Math.abs(a-cur)?b:a;});PULL_H=best;p.style.height=best+'px';}
+  h.addEventListener('pointerup',end);h.addEventListener('pointercancel',end);
+}
+function openSheet(t){
+  closeSheet();
+  var w=document.createElement('div');w.id='sheetwrap';
+  w.innerHTML='<div class="dim"></div><div class="sheet" role="dialog" aria-label="Detail transaksi"><div class="grab"></div><button type="button" class="xbtn" aria-label="Tutup">×</button>'+
+    detailHTML(t,true)+inputsHTML(t)+'<button type="button" class="btn btn-primary" id="q_go">Buat Link &amp; Kirim ke Supplier</button></div>';
+  document.body.appendChild(w);
+  w.querySelector('.dim').onclick=closeSheet;w.querySelector('.xbtn').onclick=closeSheet;
+  bindInputs(t);document.getElementById('q_go').onclick=function(){submitFrom(t);};
+  requestAnimationFrame(function(){w.classList.add('open');});
+}
+function closeSheet(){var w=document.getElementById('sheetwrap');if(w)w.remove();}
+
+/* --- B: Langkah 1-2-3 --- */
+function viewB(){
+  var steps=['Pilih transaksi','Cek nota','Kirim'];
+  var bar='<div class="wiz">'+steps.map(function(s,i){return '<div class="wz'+(i+1<=bStep?' on':'')+'"><span>'+(i+1)+'</span>'+s+'</div>';}).join('')+'</div>';
+  var body='';
+  if(bStep===1){body='<div class="card">'+note()+searchHTML('sb')+'<div id="lb" class="txlist">'+txListHTML('')+'</div></div>';}
+  else if(bStep===2){body='<div class="card">'+detailHTML(bT)+'<p class="hint">Data diambil apa adanya dari Barang Masuk. Kalau ada yang salah, perbaiki di sheet.</p>'+
+    '<div class="row2b"><button type="button" class="btn btn-ghost" id="bk">← Ganti</button><button type="button" class="btn btn-primary" id="nx">Lanjut →</button></div></div>';}
+  else{body='<div class="card"><div class="mini">'+esc(bmTitle(bT))+' · <b>'+rp(bT.total)+'</b></div>'+inputsHTML(bT)+
+    '<div class="row2b"><button type="button" class="btn btn-ghost" id="bk">← Kembali</button><button type="button" class="btn btn-primary" id="q_go">Buat Link</button></div></div>';}
+  app.innerHTML=modeBar()+bar+body;bindMode();
+  if(bStep===1){var s=document.getElementById('sb');var pick=function(t){bT=t;bStep=2;viewB();};s.oninput=function(){document.getElementById('lb').innerHTML=txListHTML(s.value);bindTx(pick);};bindTx(pick);}
+  if(bStep===2){document.getElementById('bk').onclick=function(){bStep=1;viewB();};document.getElementById('nx').onclick=function(){bStep=3;viewB();};}
+  if(bStep===3){bindInputs();document.getElementById('bk').onclick=function(){bStep=2;viewB();};document.getElementById('q_go').onclick=function(){if(submitFrom(bT)){bStep=1;bT=null;}};}
+}
+
+/* --- C: Satu layar ringkas --- */
+function viewC(){
+  var top=modeBar()+'<div class="card">'+note()+
+    (cT?'<button type="button" class="picked" id="chg"><span><span class="muted">Transaksi</span><br><b>'+esc(bmTitle(cT))+'</b> · '+cT.pur+'</span><span class="chg">Ganti</span></button>':
+        searchHTML('sc')+'<div id="lc" class="txlist short">'+txListHTML('')+'</div>')+'</div>';
+  var rest=cT?'<div class="card">'+detailHTML(cT,true)+inputsHTML(cT)+'</div><div class="stickybar"><div><span class="muted">Total</span><br><b>'+rp(cT.total)+'</b></div><button type="button" class="btn btn-primary" id="q_go">Buat Link</button></div>':'';
+  app.innerHTML=top+rest;bindMode();
+  if(!cT){var s=document.getElementById('sc');var pick=function(t){cT=t;viewC();};s.oninput=function(){document.getElementById('lc').innerHTML=txListHTML(s.value);bindTx(pick);};bindTx(pick);}
+  else{document.getElementById('chg').onclick=function(){cT=null;viewC();};bindInputs();document.getElementById('q_go').onclick=function(){if(submitFrom(cT))cT=null;};}
+}
+
+document.getElementById('reset').onclick=restart;
+viewAdmin();
+
+/* ---- Chat ke penjual (simulasi) ---- */
+var KIT_MSG='Maaf bang saat ini saya perlu ada nota dan surat pernyataan, jika *selesai transaksi*\n\nNanti kita yang buat nota dan surat pernyataan, abang ttd aja';
+function kitCopy(t,btn){
+  var done=function(){var o=btn.textContent;btn.textContent='✓ Tersalin';setTimeout(function(){btn.textContent=o;},1400);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).then(done,function(){fb();});}else fb();
+  function fb(){var ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}ta.remove();done();}
+}
+function waFmt(t){return esc(t).replace(/\*([^*\n]+)\*/g,'<b>$1</b>').replace(/\n/g,'<br>');}
+function openKit(){
+  closeSheet();
+  var w=document.createElement('div');w.id='sheetwrap';
+  w.innerHTML='<div class="dim"></div><div class="sheet" role="dialog" aria-label="Chat ke penjual"><div class="grab"></div><button type="button" class="xbtn" aria-label="Tutup">×</button>'+
+   '<h3 style="margin:4px 0 8px">Chat ke penjual</h3>'+
+   '<textarea id="kMsg" rows="5" aria-label="Pesan"></textarea>'+
+   '<div class="kitvid"><video src="tutorial-20detik.mp4" controls playsinline preload="metadata"></video></div>'+
+   '<button type="button" class="btn btn-wa kitgo" id="kGo">Kirim pesan + video ke WhatsApp</button>'+
+   '<p class="hint" style="margin:6px 0">Pilih WhatsApp → pilih chat penjual → kirim. Pesan ikut jadi keterangan video.</p>'+
+   '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" id="kCopy">Salin pesan</button><button type="button" class="btn btn-ghost btn-sm" id="kDl">⬇ Download video</button></div></div>';
+  document.body.appendChild(w);
+  w.querySelector('.dim').onclick=closeSheet;w.querySelector('.xbtn').onclick=closeSheet;
+  var m=document.getElementById('kMsg');m.value=KIT_MSG;
+  document.getElementById('kCopy').onclick=function(){kitCopy(m.value,this);};
+  document.getElementById('kDl').onclick=function(){var b=this;b.textContent='✓ Di aplikasi asli: video tersimpan ke HP';setTimeout(function(){b.textContent='⬇ Download video';},2200);};
+  document.getElementById('kGo').onclick=function(){kitFlow(m.value,1);};
+  requestAnimationFrame(function(){w.classList.add('open');});
+}
+var KIT_CONTACTS=[['Budi Santoso','Penjual · Datang Langsung'],['Ari Komputer','Penjual · WhatsApp'],['Kak Sri','Admin'],['Grup PGNet','12 anggota']];
+function kitFlow(msg,step,who){
+  var o=document.getElementById('kflow');if(!o){o=document.createElement('div');o.id='kflow';document.body.appendChild(o);}
+  var html='';
+  if(step===1){
+    var apps=[['WhatsApp','#25d366','W'],['WA Business','#128c7e','B'],['Telegram','#2aabee','T'],['Gmail','#d93025','M'],['Drive','#1a73e8','D'],['Simpan','#5f6368','↓']];
+    html='<div class="kf-dim"></div><div class="kf-share"><div class="grab"></div><div class="kf-t">Bagikan</div>'+
+      '<div class="kf-file"><video src="tutorial-20detik.mp4" muted preload="metadata"></video><div><b>Tutorial-Supplier-PGNet.mp4</b><div class="hint" style="margin:0">Video · 4,5 MB + pesan</div></div></div>'+
+      '<div class="kf-apps">'+apps.map(function(a,i){return '<button type="button" class="kf-app'+(i?' off':'')+'" data-i="'+i+'"><span style="background:'+a[1]+'">'+a[2]+'</span>'+a[0]+'</button>';}).join('')+'</div>'+
+      '<p class="hint" style="text-align:center;margin:6px 0 0">Ini menu bagikan bawaan HP — ketuk <b>WhatsApp</b>.</p></div>';
+  }else if(step===2){
+    html='<div class="kf-full"><div class="kf-bar"><button type="button" class="kf-back">←</button><div><b>Kirim ke…</b><div style="font-size:12px;opacity:.85">Pilih chat penjual</div></div></div>'+
+      '<div class="kf-list">'+KIT_CONTACTS.map(function(c,i){return '<button type="button" class="kf-c" data-i="'+i+'"><span class="kf-av">'+esc(c[0][0])+'</span><span><b>'+esc(c[0])+'</b><br><small>'+esc(c[1])+'</small></span></button>';}).join('')+'</div></div>';
+  }else if(step===3){
+    var c=KIT_CONTACTS[who];
+    html='<div class="kf-full"><div class="kf-bar"><button type="button" class="kf-back">←</button><div><b>'+esc(c[0])+'</b></div></div>'+
+      '<div class="kf-chat"><div class="kf-prev"><video src="tutorial-20detik.mp4" muted preload="metadata"></video></div>'+
+      '<div class="kf-cap">'+waFmt(msg)+'</div></div>'+
+      '<div class="kf-send"><span class="hint" style="margin:0">Pesan otomatis jadi keterangan video</span><button type="button" class="kf-sbtn" aria-label="Kirim">➤</button></div></div>';
+  }else{
+    var c2=KIT_CONTACTS[who];
+    html='<div class="kf-full"><div class="kf-bar"><button type="button" class="kf-back">←</button><div><b>'+esc(c2[0])+'</b></div></div>'+
+      '<div class="kf-chat"><div class="kf-bub"><video src="tutorial-20detik.mp4" controls playsinline preload="metadata"></video><div class="kf-btxt">'+waFmt(msg)+'</div><div class="kf-time">'+new Date().toTimeString().slice(0,5)+' ✓✓</div></div></div>'+
+      '<div class="kf-done"><b>✓ Terkirim.</b> Begini yang diterima penjual — pesan + video dalam satu kali kirim.<button type="button" class="btn btn-primary btn-sm kf-close">Selesai</button></div></div>';
+  }
+  o.innerHTML=html;
+  var q=function(s){return o.querySelector(s);};
+  if(step===1){q('.kf-dim').onclick=function(){o.remove();};o.querySelector('[data-i="0"]').onclick=function(){kitFlow(msg,2);};}
+  if(step===2){q('.kf-back').onclick=function(){kitFlow(msg,1);};o.querySelectorAll('.kf-c').forEach(function(b){b.onclick=function(){kitFlow(msg,3,+b.getAttribute('data-i'));};});}
+  if(step===3){q('.kf-back').onclick=function(){kitFlow(msg,2);};q('.kf-sbtn').onclick=function(){kitFlow(msg,4,who);};}
+  if(step===4){q('.kf-back').onclick=function(){o.remove();};q('.kf-close').onclick=function(){o.remove();closeSheet();};}
+}
+</script>
+
+</body>
+</html>

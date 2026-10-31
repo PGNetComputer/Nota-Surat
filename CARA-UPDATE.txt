@@ -1,0 +1,22 @@
+CARA UPDATE — Nota PGNet: tampilkan Barang Masuk mulai 27 Okt (31 Okt 2026)
+============================================================
+Yang berubah: Code.gs dan Admin.html (Sign.html tidak berubah).
+
+1. script.google.com → proyek "Nota & Surat Pernyataan".
+2. Ganti isi Code.gs dan Admin.html (Ctrl+A → hapus → tempel → Ctrl+S).
+   (Kalau PIN masih ditulis di kode, ganti lagi ADMIN_PIN: '1234' dengan PIN kalian —
+    atau simpan PIN di ⚙ Setelan proyek → Properti skrip → ADMIN_PIN supaya tidak perlu ganti tiap update.)
+3. Terapkan → Kelola deployment → ✏ → Versi: "Versi baru" → Terapkan.
+4. F5 / refresh semua tab & HP admin.
+
+Hasilnya
+- Daftar Barang Masuk tampil mulai 27 Oktober 2026 (untuk lihat hasil).
+- Pop-up & tanda "⚠ DIRECT wajib nota" tetap hanya untuk transaksi mulai 1 November 2026.
+- Transaksi 27–31 Oktober tetap bisa dibuatkan nota kalau mau.
+
+Mengubah tanggal nanti (bagian atas Code.gs):
+  BM_START: '2026-10-27'     → daftar ditampilkan mulai tanggal ini (mis. ganti ke '2026-11-01' kalau sudah tidak perlu)
+  WAJIB_START: '2026-11-01'  → DIRECT wajib nota mulai tanggal ini
+Lalu deploy Versi baru lagi.
+
+(Fitur sebelumnya — chat ke penjual, sisa dana di penjual, rekening wajib — sudah termasuk di file ini.)
