@@ -1,5 +1,8 @@
 # Catatan perubahan
 
+## 2026-10-31 (f)
+- Tampilan admin warna hijau (ala Google Sheets). Halaman supplier tetap biru.
+
 ## 2026-10-31 (e)
 - `BM_START` 2026-10-27 (daftar tampil mulai 27 Okt) dan `WAJIB_START` 2026-11-01 (pengingat DIRECT wajib nota).
 
