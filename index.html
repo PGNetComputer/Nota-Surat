@@ -2,33 +2,21 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Nota PGNet</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Admin Nota PGNet</title>
+<meta name="theme-color" content="#188038">
 <style>
-:root{--bg:#eef1f5;--card:#fff;--fg:#14202e;--muted:#5a6878;--navy:#1f3a5f;--wa:#1fa855}
-@media (prefers-color-scheme:dark){:root{--bg:#0f151d;--card:#18212c;--fg:#e7edf4;--muted:#9aa8b8;--navy:#5b8bd0;color-scheme:dark}}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;padding:24px max(16px,env(safe-area-inset-left,0px))}
-.wrap{max-width:520px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-h1{margin:0;font-size:24px}
-p{margin:0;color:var(--muted)}
-.card{background:var(--card);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:10px}
-a.btn{display:block;text-align:center;text-decoration:none;font-weight:700;border-radius:11px;padding:14px;color:#fff;background:var(--navy)}
-a.btn.alt{background:transparent;color:var(--navy);border:2px solid var(--navy)}
-small{color:var(--muted)}
+html,body{margin:0;height:100%;background:#f1f3f4}
+iframe{position:fixed;inset:0;width:100%;height:100%;border:0;display:block}
+.load{position:fixed;inset:0;display:grid;place-items:center;font:15px -apple-system,"Segoe UI",Roboto,Arial,sans-serif;color:#5f6368;text-align:center;padding:16px}
+.load a{color:#188038;font-weight:700}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Nota &amp; Surat Pernyataan · PGNet</h1>
-  <p>Pembelian barang dari supplier: nota + surat pernyataan keabsahan barang, tanda tangan 2×, PDF ke WhatsApp PGNet.</p>
-  <div class="card">
-    <a class="btn" href="https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec">Buka Admin Nota</a>
-    <small>Untuk admin PGNet — masuk dengan PIN.</small>
-    <a class="btn alt" href="simulasi.html">Lihat simulasi alur</a>
-    <small>Contoh alur admin → supplier dengan data contoh. Tidak ada data yang tersimpan.</small>
-  </div>
-  <p><small>Link untuk supplier dikirim khusus per transaksi lewat WhatsApp.</small></p>
-</div>
+<!-- Admin Nota PGNet: aplikasi asli tetap di Google Apps Script, ditampilkan di sini -->
+<div class="load" id="load">Memuat Admin Nota…<br><br><small>Tidak muncul? <a href="https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec" target="_top">Buka langsung di Google</a></small></div>
+<iframe id="app" src="https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec" title="Admin Nota PGNet"
+  allow="clipboard-read; clipboard-write; web-share; fullscreen"
+  onload="document.getElementById('load').style.display='none'"></iframe>
 </body>
 </html>

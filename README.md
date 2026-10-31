@@ -4,16 +4,18 @@ Aplikasi web (Google Apps Script) untuk nota pembelian + surat pernyataan keabsa
 
 ## Link
 - **Admin (masuk dengan PIN):** https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec
-- **Simulasi:** buka `simulasi.html` di GitHub Pages
+- **Admin lewat GitHub:** https://pgnetcomputer.github.io/Nota-Surat/ (menampilkan aplikasi Google di atas)
+- **Simulasi:** https://pgnetcomputer.github.io/Nota-Surat/simulasi.html
 
-> ⚠️ `Admin.html` & `Sign.html` **hanya berjalan di Google Apps Script**. Kalau dibuka lewat github.io,
-> halaman otomatis dialihkan ke link Admin di atas. Login PIN hanya bisa di link `.../exec`.
+> `index.html` di GitHub hanya "jendela" ke aplikasi Google. Data, PIN & PDF tetap di Google.
+> `Admin.html` & `Sign.html` adalah file Apps Script — kalau dibuka langsung di github.io, otomatis dialihkan.
 
 ## File
 | File | Dipakai di |
 |---|---|
 | `Code.gs`, `Admin.html`, `Sign.html`, `appsscript.json` | **Google Apps Script** (tempel ke proyek "Nota & Surat Pernyataan") |
-| `index.html`, `simulasi.html`, `tutorial-20detik.mp4` | GitHub Pages (halaman depan + simulasi) |
+| `index.html` | GitHub Pages — membuka Admin Nota |
+| `simulasi.html`, `tutorial-20detik.mp4` | GitHub Pages — simulasi |
 | `CARA-UPDATE.txt`, `CHANGELOG.md` | Catatan |
 
 ## PIN admin
