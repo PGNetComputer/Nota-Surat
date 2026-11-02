@@ -6,6 +6,7 @@
 <base target="_top">
 <meta charset="utf-8">
 <style>
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   :root{--navy:#1f3a5f;--bg:#eef1f5;--card:#fff;--line:#d5dbe3;--muted:#5b6675;--ok:#1a7f4b;--err:#b42318}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;font-size:15px}
@@ -27,7 +28,7 @@
   .tot td{border-bottom:none;font-weight:700}
   .pad-wrap{margin-top:14px}
   .pad-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:600;font-size:14px}
-  canvas{width:100%;height:170px;border:2px dashed #9aa6b5;border-radius:10px;background:#fff;touch-action:none;display:block}
+  canvas{width:100%;height:170px;border:2px dashed #9aa6b5;border-radius:10px;background:#fff;touch-action:none;-ms-touch-action:none;display:block;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
   canvas.signed{border-style:solid;border-color:var(--navy)}
   .btn{appearance:none;border:none;border-radius:10px;padding:13px 16px;font-size:15px;font-weight:600;cursor:pointer;width:100%}
   .btn-primary{background:var(--navy);color:#fff}
@@ -126,12 +127,24 @@ function makePad(cv){
   var ctx=cv.getContext('2d'),drawing=false,last=null,empty=true;
   function setup(){var r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0b1b33';empty=true;cv.classList.remove('signed');}
   function pos(e){var r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
-  cv.addEventListener('pointerdown',function(e){e.preventDefault();drawing=true;last=pos(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}ctx.beginPath();ctx.arc(last.x,last.y,1.1,0,Math.PI*2);ctx.fillStyle='#0b1b33';ctx.fill();empty=false;cv.classList.add('signed');});
-  cv.addEventListener('pointermove',function(e){if(!drawing)return;e.preventDefault();var p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;});
+  function start(p){drawing=true;last=p;ctx.beginPath();ctx.arc(p.x,p.y,1.1,0,Math.PI*2);ctx.fillStyle='#0b1b33';ctx.fill();empty=false;cv.classList.add('signed');}
+  function move(p){if(!drawing)return;ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;}
   function end(){drawing=false;}
-  cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);cv.addEventListener('pointerleave',end);
+  // Sentuhan jari (iPhone & Android): pakai touch event + preventDefault supaya halaman tidak ikut tergulir
+  var opt={passive:false};
+  cv.addEventListener('touchstart',function(e){e.preventDefault();start(pos(e.touches[0]));},opt);
+  cv.addEventListener('touchmove',function(e){e.preventDefault();move(pos(e.touches[0]));},opt);
+  cv.addEventListener('touchend',function(e){e.preventDefault();end();},opt);
+  cv.addEventListener('touchcancel',end,opt);
+  // Mouse / stylus (laptop): pointer event; sentuhan jari sudah ditangani di atas
+  cv.addEventListener('pointerdown',function(e){if(e.pointerType==='touch')return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(_){}start(pos(e));});
+  cv.addEventListener('pointermove',function(e){if(e.pointerType==='touch'||!drawing)return;e.preventDefault();move(pos(e));});
+  cv.addEventListener('pointerup',function(e){if(e.pointerType!=='touch')end();});
+  cv.addEventListener('pointercancel',function(e){if(e.pointerType!=='touch')end();});
   setup();
-  window.addEventListener('resize',function(){if(empty)setup();});
+  if(!cv.width)requestAnimationFrame(function(){setup();lastW=cv.getBoundingClientRect().width;});
+  var lastW=cv.getBoundingClientRect().width;
+  window.addEventListener('resize',function(){var w=cv.getBoundingClientRect().width;if(empty&&Math.abs(w-lastW)>1){lastW=w;setup();}});
   return {
     clear:function(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);setup();},
     isEmpty:function(){return empty;},

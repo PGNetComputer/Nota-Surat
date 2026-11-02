@@ -6,6 +6,7 @@
 <base target="_top">
 <meta charset="utf-8">
 <style>
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   :root{--navy:#188038;--bg:#f1f3f4;--card:#fff;--line:#dadce0;--muted:#5f6368;--ok:#1a7f4b;--warn:#a15c00;--err:#b42318}
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;font-size:15px}
@@ -22,6 +23,11 @@
   .tabs{display:flex;gap:6px;margin-bottom:12px}
   .tab{flex:1;padding:10px;border:none;border-radius:9px;background:#e3e7e4;font-weight:600;font-size:14px;cursor:pointer;color:#202124}
   .tab.on{background:var(--navy);color:#fff}
+  .tab.tabi{flex:0 0 50px;padding:0;display:grid;place-items:center}
+  .tab.tabi svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .remember{display:flex;gap:8px;align-items:center;font-size:14px;color:#202124;margin:10px 0 0}
+  .remember input{width:auto;margin:0}
+  .logout{display:block;margin:14px auto 0;background:none;border:0;color:var(--muted);font-size:13px;text-decoration:underline;cursor:pointer;font-family:inherit}
   .item{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:8px;position:relative}
   .item .row{display:grid;grid-template-columns:1fr 70px;gap:8px}
   .item .row2{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end;margin-top:8px}
@@ -148,12 +154,13 @@
     <h3>Masuk</h3>
     <label>PIN Admin</label>
     <input type="password" id="pin" inputmode="numeric" onkeydown="if(event.key==='Enter')doLogin()">
+    <label class="remember"><input type="checkbox" id="remember" checked>Ingat PIN di HP / laptop ini</label>
     <div style="margin-top:12px"><button class="btn btn-primary" onclick="doLogin()">Masuk</button></div>
     <div class="msg" id="loginMsg"></div>
   </div>
 
   <div id="main" class="hide">
-    <div class="tabs"><button class="tab on" id="tab_bm" onclick="showTab('bm')">Barang Masuk</button><button class="tab" id="tab_manual" onclick="showTab('manual')">Manual</button><button class="tab" id="tab_list" onclick="showTab('list')">Daftar</button></div>
+    <div class="tabs"><button class="tab on" id="tab_bm" onclick="showTab('bm')">Barang Masuk</button><button class="tab tabi" id="tab_manual" onclick="showTab('manual')" title="Manual" aria-label="Manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="tab tabi" id="tab_list" onclick="showTab('list')" title="Daftar" aria-label="Daftar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></button></div>
 
     <!-- BARANG MASUK -->
     <div id="viewBm">
@@ -248,6 +255,7 @@
         <input id="q" placeholder="Cari supplier / no nota / no pesanan…" oninput="renderList()" style="margin-top:10px">
         <div id="list" style="margin-top:6px"><div class="muted">Memuat…</div></div>
       </div>
+      <button type="button" class="logout" onclick="logout()">Keluar &amp; lupakan PIN di perangkat ini</button>
     </div>
   
   </div>
@@ -299,16 +307,20 @@ function msg(id,type,text){var m=document.getElementById(id);m.className='msg '+
 function waNorm(v){var s=String(v||'').replace(/\D/g,'');if(!s)return '';if(s[0]==='0')s='62'+s.slice(1);else if(s[0]==='8')s='62'+s;return s;}
 
 /* ---------- login ---------- */
-function doLogin(){
+function doLogin(auto){
   var p=document.getElementById('pin').value.trim();
   if(!p)return;
   google.script.run.withSuccessHandler(function(){
     PIN=p;document.getElementById('login').classList.add('hide');document.getElementById('main').classList.remove('hide');
-    try{sessionStorage.setItem('pin',p);}catch(_){}
+    try{sessionStorage.setItem('pin',p);if(document.getElementById('remember').checked)localStorage.setItem('nota_pin',p);else localStorage.removeItem('nota_pin');}catch(_){}
     afterLogin();
-  }).withFailureHandler(function(e){msg('loginMsg','err',e.message||e);}).adminLogin(p);
+  }).withFailureHandler(function(e){
+    if(auto){try{localStorage.removeItem('nota_pin');sessionStorage.removeItem('pin');}catch(_){}document.getElementById('pin').value='';msg('loginMsg','err','PIN sudah diganti. Masukkan PIN yang baru.');return;}
+    msg('loginMsg','err',e.message||e);
+  }).adminLogin(p);
 }
-try{var sp=sessionStorage.getItem('pin');if(sp){document.getElementById('pin').value=sp;doLogin();}}catch(_){}
+function logout(){try{localStorage.removeItem('nota_pin');sessionStorage.removeItem('pin');}catch(_){}location.reload();}
+try{var sp=localStorage.getItem('nota_pin')||sessionStorage.getItem('pin');if(sp){document.getElementById('pin').value=sp;doLogin(true);}}catch(_){}
 
 /* ---------- form ---------- */
 function initForm(){

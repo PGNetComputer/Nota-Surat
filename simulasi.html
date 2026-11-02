@@ -262,6 +262,11 @@ details.card:not([open]){gap:0}
 body.adm{--navy:#188038;--soft:#e8f3eb}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) body.adm{--navy:#34a853;--soft:#1f3326}}
 :root[data-theme="dark"] body.adm{--navy:#34a853;--soft:#1f3326}
+.stabs{display:flex;gap:6px}
+.stab{flex:1;border:0;border-radius:10px;background:var(--soft);color:var(--fg);font:600 14px/1 inherit;font-family:inherit;padding:12px;cursor:pointer}
+.stab.on{background:var(--navy);color:var(--navy-fg)}
+.stab.ic{flex:0 0 50px;padding:0;display:grid;place-items:center}
+.stab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 </style>
 </head>
 <body>
@@ -1177,10 +1182,17 @@ function makePad(cv){
   var ctx=cv.getContext('2d'),drawing=false,last=null,empty=true;
   function setup(){var r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0b1b33';ctx.fillStyle='#0b1b33';empty=true;cv.classList.remove('signed');}
   function pos(e){var r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
-  cv.addEventListener('pointerdown',function(e){e.preventDefault();drawing=true;last=pos(e);try{cv.setPointerCapture(e.pointerId);}catch(_){}ctx.beginPath();ctx.arc(last.x,last.y,1.1,0,7);ctx.fill();empty=false;cv.classList.add('signed');});
-  cv.addEventListener('pointermove',function(e){if(!drawing)return;e.preventDefault();var p=pos(e);ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;});
-  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){cv.addEventListener(ev,function(){drawing=false;});});
-  setup();window.addEventListener('resize',function(){if(empty)setup();});
+  function start(p){drawing=true;last=p;ctx.beginPath();ctx.arc(p.x,p.y,1.1,0,7);ctx.fill();empty=false;cv.classList.add('signed');}
+  function move(p){if(!drawing)return;ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;}
+  var opt={passive:false};
+  cv.addEventListener('touchstart',function(e){e.preventDefault();start(pos(e.touches[0]));},opt);
+  cv.addEventListener('touchmove',function(e){e.preventDefault();move(pos(e.touches[0]));},opt);
+  cv.addEventListener('touchend',function(e){e.preventDefault();drawing=false;},opt);
+  cv.addEventListener('touchcancel',function(){drawing=false;},opt);
+  cv.addEventListener('pointerdown',function(e){if(e.pointerType==='touch')return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(_){}start(pos(e));});
+  cv.addEventListener('pointermove',function(e){if(e.pointerType==='touch'||!drawing)return;e.preventDefault();move(pos(e));});
+  ['pointerup','pointercancel'].forEach(function(ev){cv.addEventListener(ev,function(e){if(e.pointerType!=='touch')drawing=false;});});
+  setup();var lastW=cv.getBoundingClientRect().width;window.addEventListener('resize',function(){var w=cv.getBoundingClientRect().width;if(empty&&Math.abs(w-lastW)>1){lastW=w;setup();}});
   return {clear:function(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);setup();},isEmpty:function(){return empty;},
     png:function(){var w=600,h=Math.round(cv.height*w/cv.width),o=document.createElement('canvas');o.width=w;o.height=h;var c=o.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,w,h);c.drawImage(cv,0,0,w,h);return o.toDataURL('image/png');}};
 }
@@ -1227,9 +1239,11 @@ function restart(){DATA=makeData();RES=null;USED={};DONE={};LIST_TAB='belum';bSt
 /* ===== 3 TAMPILAN ADMIN ===== */
 var MODE='A', bStep=1, bT=null, cT=null;
 function modeBar(){
-  return '<div class="modes"><button type="button" class="linkbtn" data-m="'+(MODE==='form'?'A':'form')+'">'+(MODE==='form'?'← Kembali ke daftar Barang Masuk':'Buat manual / tempel dari WA')+'</button></div>';
+  var f=MODE==='form';
+  return '<div class="stabs"><button type="button" class="stab'+(f?'':' on')+'" data-m="A">Barang Masuk</button><button type="button" class="stab ic'+(f?' on':'')+'" data-m="form" title="Manual" aria-label="Manual"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button type="button" class="stab ic" data-m="list" title="Daftar" aria-label="Daftar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg></button></div>'+(SIM_LISTNOTE?'<p class="hint" style="margin:-6px 0 0;text-align:right">Daftar: semua nota &amp; statusnya (di aplikasi asli).</p>':'');
 }
-function bindMode(){document.querySelectorAll('[data-m]').forEach(function(b){b.onclick=function(){MODE=b.getAttribute('data-m');viewAdmin();};});}
+var SIM_LISTNOTE=false;
+function bindMode(){document.querySelectorAll('[data-m]').forEach(function(b){b.onclick=function(){var m=b.getAttribute('data-m');if(m==='list'){SIM_LISTNOTE=true;viewAdmin();setTimeout(function(){SIM_LISTNOTE=false;},50);return;}MODE=m;viewAdmin();};});}
 function bmParse(t){
   var platform=String(t.jenis||'').trim(),direct=!platform||/^direct$/i.test(platform);
   var parts=t.d.split('/').map(function(s){return s.trim();}).filter(Boolean),first=parts[0]||'';

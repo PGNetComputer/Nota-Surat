@@ -1,5 +1,9 @@
 # Catatan perubahan
 
+## 2026-11-01
+- Tanda tangan di iPhone: pakai touch event (passive:false) supaya halaman tidak ikut bergeser.
+- PIN admin diingat di perangkat (bisa keluar dari tab Daftar). Tab Manual & Daftar jadi ikon.
+
 ## 2026-10-31 (f)
 - Tampilan admin warna hijau (ala Google Sheets). Halaman supplier tetap biru.
 

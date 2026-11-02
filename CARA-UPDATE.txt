@@ -1,3 +1,17 @@
+UPDATE (1 Nov 2026, 13.10) — TTD di iPhone diperbaiki
+------------------------------------------------------------
+Ganti Sign.html (dan Admin.html) → Terapkan → Kelola deployment → ✏ → Versi baru → Terapkan.
+Link nota yang sudah terkirim ke penjual ikut memakai versi baru (tidak perlu kirim ulang link) —
+penjual cukup tutup & buka lagi link-nya.
+
+UPDATE (1 Nov 2026) — PIN diingat + tab ikon
+------------------------------------------------------------
+Cukup ganti Admin.html → Terapkan → Kelola deployment → ✏ → Versi baru → Terapkan → F5.
+- Login sekali saja: centang "Ingat PIN di HP / laptop ini" (sudah tercentang) → berikutnya langsung masuk.
+  Kalau PIN diganti di Properti skrip, aplikasi minta PIN baru otomatis.
+  Untuk keluar: tab Daftar (ikon ☰) → paling bawah "Keluar & lupakan PIN di perangkat ini".
+- Tab Manual & Daftar jadi ikon kecil (✏ = Manual, ☰ = Daftar).
+
 UPDATE TAMBAHAN (31 Okt 2026, 19.00) — Tampilan admin warna hijau
 ------------------------------------------------------------
 Cukup ganti Admin.html → Terapkan → Kelola deployment → ✏ → Versi baru → Terapkan → F5.
