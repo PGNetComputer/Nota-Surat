@@ -1,3 +1,25 @@
+UPDATE (2 Nov 2026) — Admin & halaman penjual pakai link GitHub
+============================================================
+Link baru:
+  Admin   : https://pgnetcomputer.github.io/Nota-Surat/
+  Penjual : https://pgnetcomputer.github.io/Nota-Surat/ttd.html?t=...  (otomatis dari admin)
+
+A. Apps Script (WAJIB dulu)
+   1. Ganti isi Code.gs, Admin, Sign → simpan.
+   2. Terapkan → Kelola deployment → ✏ → Versi: "Versi baru" → Terapkan.
+      (Akses tetap "Siapa saja". Kalau diminta izin → Izinkan.)
+B. GitHub
+   3. Upload semua isi nota-github.zip ke repo Nota-Surat → Commit changes.
+   4. Tunggu 1–2 menit → buka link Admin di atas → masuk PIN (sekali saja).
+C. Tes
+   5. Buat 1 nota → link yang dikirim ke penjual sekarang berawalan pgnetcomputer.github.io/...ttd.html
+   6. Buka link itu di iPhone & Android → tanda tangan 2× → PDF.
+
+Catatan
+- Link penjual lama (script.google.com/...exec?t=...) tetap bisa dipakai.
+- Link Google .../exec tetap bisa dipakai sebagai cadangan untuk admin.
+- Mau kembali ke link Google untuk penjual: di Code.gs isi SIGN_URL: '' lalu deploy Versi baru.
+
 UPDATE (1 Nov 2026, 13.10) — TTD di iPhone diperbaiki
 ------------------------------------------------------------
 Ganti Sign.html (dan Admin.html) → Terapkan → Kelola deployment → ✏ → Versi baru → Terapkan.

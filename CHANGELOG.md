@@ -1,5 +1,8 @@
 # Catatan perubahan
 
+## 2026-11-02
+- Admin (index.html) & halaman penjual (ttd.html) jalan di GitHub Pages; Apps Script jadi server lewat doPost (API_). Link penjual = SIGN_URL.
+
 ## 2026-11-01
 - Tanda tangan di iPhone: pakai touch event (passive:false) supaya halaman tidak ikut bergeser.
 - PIN admin diingat di perangkat (bisa keluar dari tab Daftar). Tab Manual & Daftar jadi ikon.

@@ -1,26 +1,28 @@
 # Nota & Surat Pernyataan Transaksi — PGNet
 
-Aplikasi web (Google Apps Script) untuk nota pembelian + surat pernyataan keabsahan barang dari supplier, ditandatangani 2x oleh penjual, PDF dikirim ke WA PGNet.
+Nota pembelian + surat pernyataan keabsahan barang dari supplier, ditandatangani 2× oleh penjual, PDF dikirim ke WA PGNet.
 
 ## Link
-- **Admin (masuk dengan PIN):** https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec
-- **Admin lewat GitHub:** https://pgnetcomputer.github.io/Nota-Surat/ (menampilkan aplikasi Google di atas)
+- **Admin:** https://pgnetcomputer.github.io/Nota-Surat/
+- **Penjual (tanda tangan):** https://pgnetcomputer.github.io/Nota-Surat/ttd.html?t=… — dibuat otomatis per transaksi
 - **Simulasi:** https://pgnetcomputer.github.io/Nota-Surat/simulasi.html
+- Server (Google Apps Script): https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec
 
-> `index.html` di GitHub hanya "jendela" ke aplikasi Google. Data, PIN & PDF tetap di Google.
-> `Admin.html` & `Sign.html` adalah file Apps Script — kalau dibuka langsung di github.io, otomatis dialihkan.
+## Cara kerja
+Tampilan ada di GitHub. Data, PIN, Sheet & PDF tetap di Google: halaman GitHub memanggil Apps Script lewat `doPost` (fungsi yang boleh dipanggil ada di daftar `API_` di Code.gs).
 
 ## File
 | File | Dipakai di |
 |---|---|
+| `index.html` | GitHub — halaman **Admin** |
+| `ttd.html` | GitHub — halaman **penjual** tanda tangan |
+| `simulasi.html`, `tutorial-20detik.mp4`, PDF | GitHub — simulasi & panduan |
 | `Code.gs`, `Admin.html`, `Sign.html`, `appsscript.json` | **Google Apps Script** (tempel ke proyek "Nota & Surat Pernyataan") |
-| `index.html` | GitHub Pages — membuka Admin Nota |
-| `simulasi.html`, `tutorial-20detik.mp4` | GitHub Pages — simulasi |
-| `CARA-UPDATE.txt`, `CHANGELOG.md` | Catatan |
+| `build_github.py` | membuat ulang `index.html` & `ttd.html` dari `Admin.html` & `Sign.html` |
 
 ## PIN admin
-Simpan di Apps Script → ⚙ Setelan proyek → **Properti skrip** → `ADMIN_PIN`. Tidak ikut tersimpan di GitHub.
-`ADMIN_PIN: '1234'` di Code.gs hanya cadangan kalau Properti skrip kosong.
+Apps Script → ⚙ Setelan proyek → **Properti skrip** → `ADMIN_PIN` (tidak terlihat di GitHub).
 
-## Update aplikasi
-Tempel file yang berubah ke Apps Script → Terapkan → Kelola deployment → ✏ → **Versi baru** → Terapkan → F5.
+## Update
+1. Apps Script: tempel file yang berubah → Terapkan → Kelola deployment → ✏ → **Versi baru**.
+2. GitHub: upload `index.html` / `ttd.html` terbaru.

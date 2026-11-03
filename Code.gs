@@ -16,6 +16,8 @@
 
 const CONFIG = {
   NAMA_TOKO: 'PGNet',
+  // Link tanda tangan untuk penjual (halaman di GitHub). Kosongkan '' untuk memakai link Google (…/exec).
+  SIGN_URL: 'https://pgnetcomputer.github.io/Nota-Surat/ttd.html',
   WA_PGNET: '6289605345210',      // 089605345210
   ADMIN_PIN: '1234',               // cadangan saja. PIN asli simpan di Setelan proyek → Properti skrip: ADMIN_PIN
   KOTA: 'Bogor',
@@ -101,6 +103,34 @@ function getFolder_() {
 
 /* ============================== WEB APP ============================== */
 
+/* ============================== API untuk halaman GitHub ==============================
+ * Halaman admin (index.html) & penjual (ttd.html) di GitHub memanggil fungsi di bawah lewat POST.
+ * Hanya fungsi di daftar API_ yang bisa dipanggil; fungsi admin tetap dicek PIN-nya. */
+const API_ = {
+  adminBoot: adminBoot, signBoot: signBoot, adminLogin: adminLogin, createTrx: createTrx, listTrx: listTrx,
+  deleteTrx: deleteTrx, getBM: getBM, getChatKit: getChatKit, getVideoData: getVideoData, submitSignature: submitSignature
+};
+function doPost(e) {
+  let out;
+  try {
+    const req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const fn = API_[req.fn];
+    if (!fn) throw new Error('Fungsi tidak dikenal.');
+    out = { ok: true, result: fn.apply(null, req.args || []) };
+  } catch (err) {
+    out = { ok: false, error: String(err && err.message || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+function cfgPublic_() { return { nama: CONFIG.NAMA_TOKO, wa: CONFIG.WA_PGNET, kota: CONFIG.KOTA }; }
+function adminBoot() {
+  return { payload: { kanal: KANAL_LIST, url: signBase_(), start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START }, cfg: cfgPublic_() };
+}
+function signBoot(token) {
+  const trx = token ? findByToken_(String(token)) : null;
+  return { payload: trx ? publicView_(trx) : null, cfg: cfgPublic_() };
+}
+
 function doGet(e) {
   const token = e && e.parameter && e.parameter.t;
   let t;
@@ -110,7 +140,7 @@ function doGet(e) {
     t.payload = safeJson_(trx ? publicView_(trx) : null);
   } else {
     t = HtmlService.createTemplateFromFile('Admin');
-    t.payload = safeJson_({ kanal: KANAL_LIST, url: webAppUrl_(), start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START });
+    t.payload = safeJson_({ kanal: KANAL_LIST, url: signBase_(), start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START });
   }
   t.cfg = safeJson_({ nama: CONFIG.NAMA_TOKO, wa: CONFIG.WA_PGNET, kota: CONFIG.KOTA });
   return t.evaluate()
@@ -230,7 +260,7 @@ function createTrx(pin, d) {
 }
 
 function resultFromRow_(v) {
-  return { noNota: v[COL['No Nota']], link: webAppUrl_() + '?t=' + v[COL['Token']], token: v[COL['Token']],
+  return { noNota: v[COL['No Nota']], link: signBase_() + '?t=' + v[COL['Token']], token: v[COL['Token']],
            waSupplier: v[COL['No WA Supplier']], pur: v[COL['Ref PUR']] || '' };
 }
 
@@ -241,7 +271,7 @@ function listTrx(pin) {
   if (last < 2) return [];
   const from = Math.max(2, last - 299);                 // cukup 300 nota terakhir
   const vals = sh.getRange(from, 1, last - from + 1, HEADERS.length).getDisplayValues();
-  const base = webAppUrl_();
+  const base = signBase_();
   return vals.filter(r => r[COL['ID']]).map(r => ({
     id: r[COL['ID']],
     noNota: r[COL['No Nota']],
@@ -491,6 +521,7 @@ function fileName_(t) {
 }
 
 function webAppUrl_() { return ScriptApp.getService().getUrl(); }
+function signBase_() { return CONFIG.SIGN_URL || webAppUrl_(); }
 function tz_() { return Session.getScriptTimeZone() || 'Asia/Jakarta'; }
 
 function toIso_(v) {
@@ -552,7 +583,7 @@ function notaByPur_() {
   const b0 = COL['Total'], b1 = COL['Ref PUR'];                 // Total..Ref PUR
   const A = sh.getRange(2, a0 + 1, last - 1, a1 - a0 + 1).getDisplayValues();
   const B = sh.getRange(2, b0 + 1, last - 1, b1 - b0 + 1).getDisplayValues();
-  const base = webAppUrl_(), rek = {};
+  const base = signBase_(), rek = {};
   for (let i = 0; i < B.length; i++) {
     // rekening terakhir per nama (untuk isi otomatis di form admin)
     const nr = A[i][COL['No Rekening'] - a0];

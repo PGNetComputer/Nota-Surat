@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Nota & Surat Pernyataan PGNet</title>
+<meta name="theme-color" content="#188038">
+<style>
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+  :root{--navy:#1f3a5f;--bg:#eef1f5;--card:#fff;--line:#d5dbe3;--muted:#5b6675;--ok:#1a7f4b;--err:#b42318}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#111;font-size:15px}
+  .wrap{max-width:640px;margin:0 auto;padding:14px 12px 40px}
+  .brand{display:flex;align-items:center;gap:8px;color:var(--navy);font-weight:700;margin:4px 2px 12px}
+  .brand small{font-weight:400;color:var(--muted)}
+  .card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+  .step{font-size:12px;font-weight:700;color:#fff;background:var(--navy);display:inline-block;padding:3px 9px;border-radius:999px;margin-bottom:8px}
+  h2{margin:0 0 4px;font-size:19px;letter-spacing:.5px}
+  .muted{color:var(--muted);font-size:13px}
+  table{width:100%;border-collapse:collapse}
+  .info td{padding:3px 0;vertical-align:top;font-size:14px}
+  .info td:first-child{color:var(--muted);width:42%;padding-right:6px}
+  .items{margin-top:10px}
+  .items th{background:var(--navy);color:#fff;font-size:12px;padding:6px 5px;text-align:left}
+  .items td{border-bottom:1px solid var(--line);padding:6px 5px;font-size:13.5px}
+  .r{text-align:right;white-space:nowrap}.c{text-align:center}
+  .items td,.items th{font-size:12.5px}
+  .tot td{border-bottom:none;font-weight:700}
+  .pad-wrap{margin-top:14px}
+  .pad-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-weight:600;font-size:14px}
+  canvas{width:100%;height:170px;border:2px dashed #9aa6b5;border-radius:10px;background:#fff;touch-action:none;-ms-touch-action:none;display:block;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  canvas.signed{border-style:solid;border-color:var(--navy)}
+  .btn{appearance:none;border:none;border-radius:10px;padding:13px 16px;font-size:15px;font-weight:600;cursor:pointer;width:100%}
+  .btn-primary{background:var(--navy);color:#fff}
+  .btn-wa{background:#25d366;color:#fff}
+  .btn-ghost{background:#e7ebf1;color:#1f2a37}
+  .btn-sm{width:auto;padding:5px 12px;font-size:13px;border-radius:8px}
+  .btn:disabled{opacity:.55}
+  ol{padding-left:20px}ol li{margin-bottom:6px;line-height:1.45}
+  p{line-height:1.5;margin:8px 0}
+  .check{display:flex;gap:10px;align-items:flex-start;font-size:14px;margin:6px 0 14px}
+  .check input{width:20px;height:20px;margin-top:1px;flex:none}
+  .msg{padding:10px 12px;border-radius:8px;font-size:14px;margin-top:10px;display:none}
+  .msg.err{background:#fde8e7;color:var(--err);display:block}
+  .done{text-align:center}
+  .done .big{font-size:44px}
+  .stack>*+*{margin-top:10px}
+  .badge{display:inline-block;background:#e6f4ec;color:var(--ok);font-weight:700;border-radius:999px;padding:3px 10px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script type="text/plain" id="appjs">
+var DATA = window.__P;
+var CFG = window.__C;
+
+var BLN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function tgl(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(+m[3])+' '+BLN[+m[2]-1]+' '+m[1]:(iso||'');}
+function rp(n){return 'Rp '+Math.round(+n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+var app=document.getElementById('app');
+var RESULT=null;
+
+function rekLine(t){return esc(t.namaRek)+(t.bank?' — '+esc(t.bank):'')+(t.noRek?' '+esc(t.noRek):'');}
+
+function render(){
+  var brand='<div class="brand">'+esc(CFG.nama)+' <small>· Nota & Surat Pernyataan</small></div>';
+  if(!DATA){app.innerHTML=brand+'<div class="card"><h2>Link tidak valid</h2><p class="muted">Link ini tidak ditemukan atau sudah dihapus. Silakan hubungi '+esc(CFG.nama)+'.</p></div>';return;}
+  var t=DATA, isMp=t.kanal==='Marketplace', supLabel=isMp?'Nama Toko':'Nama Supplier / Penjual';
+  if(t.status==='Sudah TTD'){
+    app.innerHTML=brand+'<div class="card done"><div class="big">✅</div><h2>Sudah ditandatangani</h2><p class="muted">Nota '+esc(t.noNota)+' sudah ditandatangani pada '+esc(t.signedAt)+'.</p>'+
+      (t.pdf?'<div class="stack"><button class="btn btn-wa" onclick="openWa(\''+esc(t.pdf)+'\')">Kirim info ke WhatsApp '+esc(CFG.nama)+'</button><a href="'+esc(t.pdf)+'" target="_blank"><button class="btn btn-ghost">Lihat PDF</button></a></div>':'')+'</div>';
+    return;
+  }
+  var rows=t.items.map(function(it,i){return '<tr><td class="c">'+(i+1)+'</td><td>'+esc(it.nama)+'</td><td class="c">'+it.qty+'</td><td class="r">'+rp(it.harga)+'</td><td class="r">'+rp(it.subtotal)+'</td></tr>';}).join('');
+  app.innerHTML=brand+
+  '<div class="card">'+
+    '<span class="step">Halaman 1 dari 2</span><h2>NOTA PEMBELIAN</h2><div class="muted">'+esc(CFG.nama)+' · '+esc(CFG.kota)+'</div>'+
+    '<table class="info" style="margin-top:10px">'+
+      '<tr><td>No. Nota</td><td><b>'+esc(t.noNota)+'</b>'+(t.pur?' <span class="muted">(Ref. '+esc(t.pur)+')</span>':'')+'</td></tr>'+
+      '<tr><td>Tanggal</td><td>'+tgl(t.tanggal)+'</td></tr>'+
+      (t.supplier?'<tr><td>'+supLabel+'</td><td>'+esc(t.supplier)+'</td></tr>':'')+
+      '<tr><td>Nama Rekening</td><td>'+rekLine(t)+'</td></tr>'+
+      '<tr><td>Transaksi melalui</td><td>'+esc(t.kanalText)+'</td></tr>'+
+      '<tr><td>Pembayaran</td><td><b>LUNAS</b>, '+(isMp?'dibayar melalui marketplace':'ditransfer ke rekening di atas')+'</td></tr>'+
+    '</table>'+
+    '<table class="items"><tr><th class="c">No</th><th>Barang</th><th class="c">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>'+rows+
+      (t.subtotal&&t.total>t.subtotal?
+        '<tr class="tot"><td colspan="4" class="r">Total barang</td><td class="r">'+rp(t.subtotal)+'</td></tr>'+
+        '<tr class="tot"><td colspan="4" class="r" style="font-weight:400">Ditransfer PGNet</td><td class="r" style="font-weight:400">'+rp(t.total)+'</td></tr>'+
+        '<tr class="tot"><td colspan="4" class="r" style="font-weight:400">Sisa dana di penjual</td><td class="r" style="font-weight:400">'+rp(t.total-t.subtotal)+'</td></tr>':
+      t.subtotal&&t.subtotal!==t.total?
+        '<tr class="tot"><td colspan="4" class="r" style="font-weight:400">Subtotal barang</td><td class="r" style="font-weight:400">'+rp(t.subtotal)+'</td></tr>'+
+        '<tr class="tot"><td colspan="4" class="r" style="font-weight:400">'+(t.total<t.subtotal?'Potongan (ongkir, dll.)':'Tambahan')+'</td><td class="r" style="font-weight:400">'+(t.total<t.subtotal?'−':'+')+rp(Math.abs(t.subtotal-t.total))+'</td></tr>'+
+        '<tr class="tot"><td colspan="4" class="r">Total Dibayar</td><td class="r">'+rp(t.total)+'</td></tr>':
+        '<tr class="tot"><td colspan="4" class="r">Total</td><td class="r">'+rp(t.total)+'</td></tr>')+'</table>'+
+    '<div class="pad-wrap"><div class="pad-label">Tanda tangan Penjual (Nota) <button class="btn btn-ghost btn-sm" onclick="pads.nota.clear()">Hapus</button></div><canvas id="padNota"></canvas></div>'+
+  '</div>'+
+  '<div class="card">'+
+    '<span class="step">Halaman 2 dari 2</span><h2>SURAT PERNYATAAN</h2><div class="muted">Keabsahan barang yang dijual</div>'+
+    '<p>Saya yang bertanda tangan di bawah ini:</p>'+
+    '<table class="info">'+(t.supplier?'<tr><td>'+supLabel+'</td><td>'+esc(t.supplier)+'</td></tr>':'')+
+      (t.waSupplier?'<tr><td>No. WhatsApp</td><td>'+esc(t.waSupplier)+'</td></tr>':'')+
+      '<tr><td>Nama Rekening</td><td>'+rekLine(t)+'</td></tr></table>'+
+    '<p>menyatakan dengan sebenarnya bahwa barang yang saya jual kepada <b>'+esc(CFG.nama)+'</b> sebagaimana tercantum dalam <b>Nota No. '+esc(t.noNota)+'</b> tanggal '+tgl(t.tanggal)+' (transaksi melalui '+esc(t.kanalText)+') adalah:</p>'+
+    '<ol><li>Milik saya yang sah atau saya peroleh dengan cara yang sah;</li><li><b>Bukan barang hasil curian</b>, penggelapan, penipuan, penadahan, atau hasil tindak pidana lainnya;</li><li>Tidak sedang dalam sengketa, dijaminkan, atau disita oleh pihak mana pun.</li></ol>'+
+    (t.subtotal&&t.total>t.subtotal
+      ?'<p>Saya telah menerima pembayaran sebesar <b>'+rp(t.total)+'</b> '+(isMp?'melalui marketplace':'melalui transfer ke rekening di atas')+' untuk barang senilai <b>'+rp(t.subtotal)+'</b>, dengan <b>sisa dana di penjual sebesar '+rp(t.total-t.subtotal)+'</b>.</p>'
+      :'<p>Saya telah menerima pembayaran atas barang tersebut secara <b>lunas</b> sebesar <b>'+rp(t.total)+'</b> '+(isMp?'melalui marketplace':'melalui transfer ke rekening di atas')+'.</p>')+
+    '<p>Apabila di kemudian hari terbukti pernyataan ini tidak benar, saya bersedia bertanggung jawab sepenuhnya secara hukum dan membebaskan '+esc(CFG.nama)+' dari segala tuntutan pihak mana pun.</p>'+
+    '<p>Demikian surat pernyataan ini saya buat dengan sadar, sebenar-benarnya, dan tanpa paksaan dari pihak mana pun.</p>'+
+    '<p class="muted">'+esc(CFG.kota)+', '+tgl(t.tanggal)+'</p>'+
+    '<div class="pad-wrap"><div class="pad-label">Tanda tangan Yang Membuat Pernyataan <button class="btn btn-ghost btn-sm" onclick="pads.pernyataan.clear()">Hapus</button></div><canvas id="padPernyataan"></canvas></div>'+
+  '</div>'+
+  '<div class="card">'+
+    '<label class="check"><input type="checkbox" id="agree"><span>Saya sudah membaca nota dan surat pernyataan di atas, dan menyatakan isinya benar.</span></label>'+
+    '<button class="btn btn-primary" id="btnSubmit" onclick="submit()">Tanda Tangan &amp; Buat PDF</button>'+
+    '<div class="msg" id="msg"></div>'+
+  '</div>';
+  pads.nota=makePad(document.getElementById('padNota'));
+  pads.pernyataan=makePad(document.getElementById('padPernyataan'));
+}
+
+var pads={};
+function makePad(cv){
+  var ctx=cv.getContext('2d'),drawing=false,last=null,empty=true;
+  function setup(){var r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;cv.width=Math.round(r.width*d);cv.height=Math.round(r.height*d);ctx.setTransform(d,0,0,d,0,0);ctx.lineWidth=2.4;ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle='#0b1b33';empty=true;cv.classList.remove('signed');}
+  function pos(e){var r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+  function start(p){drawing=true;last=p;ctx.beginPath();ctx.arc(p.x,p.y,1.1,0,Math.PI*2);ctx.fillStyle='#0b1b33';ctx.fill();empty=false;cv.classList.add('signed');}
+  function move(p){if(!drawing)return;ctx.beginPath();ctx.moveTo(last.x,last.y);ctx.lineTo(p.x,p.y);ctx.stroke();last=p;}
+  function end(){drawing=false;}
+  // Sentuhan jari (iPhone & Android): pakai touch event + preventDefault supaya halaman tidak ikut tergulir
+  var opt={passive:false};
+  cv.addEventListener('touchstart',function(e){e.preventDefault();start(pos(e.touches[0]));},opt);
+  cv.addEventListener('touchmove',function(e){e.preventDefault();move(pos(e.touches[0]));},opt);
+  cv.addEventListener('touchend',function(e){e.preventDefault();end();},opt);
+  cv.addEventListener('touchcancel',end,opt);
+  // Mouse / stylus (laptop): pointer event; sentuhan jari sudah ditangani di atas
+  cv.addEventListener('pointerdown',function(e){if(e.pointerType==='touch')return;e.preventDefault();try{cv.setPointerCapture(e.pointerId);}catch(_){}start(pos(e));});
+  cv.addEventListener('pointermove',function(e){if(e.pointerType==='touch'||!drawing)return;e.preventDefault();move(pos(e));});
+  cv.addEventListener('pointerup',function(e){if(e.pointerType!=='touch')end();});
+  cv.addEventListener('pointercancel',function(e){if(e.pointerType!=='touch')end();});
+  setup();
+  if(!cv.width)requestAnimationFrame(function(){setup();lastW=cv.getBoundingClientRect().width;});
+  var lastW=cv.getBoundingClientRect().width;
+  window.addEventListener('resize',function(){var w=cv.getBoundingClientRect().width;if(empty&&Math.abs(w-lastW)>1){lastW=w;setup();}});
+  return {
+    clear:function(){ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);setup();},
+    isEmpty:function(){return empty;},
+    toPng:function(){var w=600,h=Math.round(cv.height*w/cv.width),o=document.createElement('canvas');o.width=w;o.height=h;var c=o.getContext('2d');c.fillStyle='#fff';c.fillRect(0,0,w,h);c.drawImage(cv,0,0,w,h);return o.toDataURL('image/png');}
+  };
+}
+
+function showErr(s){var m=document.getElementById('msg');m.className='msg err';m.textContent=s;}
+
+function submit(){
+  if(pads.nota.isEmpty()){showErr('Tanda tangan di Nota (halaman 1) belum diisi.');document.getElementById('padNota').scrollIntoView({behavior:'smooth',block:'center'});return;}
+  if(pads.pernyataan.isEmpty()){showErr('Tanda tangan di Surat Pernyataan (halaman 2) belum diisi.');document.getElementById('padPernyataan').scrollIntoView({behavior:'smooth',block:'center'});return;}
+  if(!document.getElementById('agree').checked){showErr('Centang dulu persetujuan di atas tombol.');return;}
+  var b=document.getElementById('btnSubmit');b.disabled=true;b.textContent='Membuat PDF… mohon tunggu';
+  document.getElementById('msg').className='msg';
+  google.script.run
+    .withSuccessHandler(function(res){RESULT=res;renderDone();})
+    .withFailureHandler(function(err){b.disabled=false;b.textContent='Tanda Tangan & Buat PDF';showErr('Gagal: '+(err&&err.message?err.message:err));})
+    .submitSignature(DATA.token,pads.nota.toPng(),pads.pernyataan.toPng());
+}
+
+function renderDone(){
+  window.scrollTo(0,0);
+  app.innerHTML='<div class="brand">'+esc(CFG.nama)+' <small>· Nota & Surat Pernyataan</small></div>'+
+  '<div class="card done"><div class="big">✅</div><h2>Berhasil ditandatangani</h2>'+
+  '<p class="muted">Langkah terakhir: kirim PDF ke WhatsApp '+esc(CFG.nama)+'.</p>'+
+  '<div class="stack">'+
+    (RESULT.base64?'<button class="btn btn-wa" onclick="sharePdf()">📤 Kirim PDF ke WhatsApp '+esc(CFG.nama)+'</button>':'')+
+    '<button class="btn '+(RESULT.base64?'btn-ghost':'btn-wa')+'" onclick="openWa(RESULT.url)">💬 Buka chat WhatsApp '+esc(CFG.nama)+'</button>'+
+    '<a href="'+esc(RESULT.url)+'" target="_blank"><button class="btn btn-ghost">Lihat PDF</button></a>'+
+  '</div><p class="muted" id="hint" style="margin-top:14px"></p></div>';
+}
+
+function pdfFile(){
+  var bin=atob(RESULT.base64),u=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+  return new File([u],RESULT.fileName,{type:'application/pdf'});
+}
+
+function sharePdf(){
+  var f=pdfFile();
+  if(navigator.canShare&&navigator.canShare({files:[f]})){
+    navigator.share({files:[f],title:RESULT.fileName,text:'Nota & Surat Pernyataan '+DATA.noNota+(DATA.supplier?' - '+DATA.supplier:'')})
+      .then(function(){document.getElementById('hint').textContent='Terkirim. Terima kasih 🙏';})
+      .catch(function(e){if(e&&e.name==='AbortError')return;fallbackDownload(f);});
+  } else {
+    fallbackDownload(f);
+  }
+}
+
+function fallbackDownload(f){
+  try{var a=document.createElement('a');a.href=URL.createObjectURL(f);a.download=RESULT.fileName;document.body.appendChild(a);a.click();a.remove();}catch(_){}
+  document.getElementById('hint').innerHTML='PDF sudah diunduh ke HP kamu. Tekan <b>"Buka chat WhatsApp '+esc(CFG.nama)+'"</b>, lalu lampirkan file PDF-nya (ikon 📎 → Dokumen).';
+}
+
+function openWa(url){
+  var text='Halo '+CFG.nama+', saya '+(DATA.supplier||('penjual invoice '+DATA.noTrxMp))+' sudah menandatangani Nota & Surat Pernyataan No. '+DATA.noNota+'.\nPDF: '+url;
+  window.open('https://wa.me/'+CFG.wa+'?text='+encodeURIComponent(text),'_blank');
+}
+
+render();
+</script>
+<script>
+/* Jembatan ke Google Apps Script: google.script.run → POST ke …/exec */
+var API_URL='https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec';
+function apiCall(fn,args){
+  return fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({fn:fn,args:args||[]}),redirect:'follow'})
+    .then(function(r){if(!r.ok)throw new Error('Server '+r.status);return r.json();})
+    .then(function(j){if(!j.ok)throw new Error(j.error||'Gagal');return j.result;},function(e){throw new Error(/fetch|network|Load failed/i.test(String(e&&e.message))?'Tidak ada koneksi ke server. Cek internet lalu coba lagi.':(e&&e.message)||String(e));});
+}
+(function(){
+  var FNS=["adminBoot", "signBoot", "adminLogin", "createTrx", "listTrx", "deleteTrx", "getBM", "getChatKit", "getVideoData", "submitSignature"];
+  function mk(ok,fail){var o={withSuccessHandler:function(f){return mk(f,fail);},withFailureHandler:function(f){return mk(ok,f);}};
+    FNS.forEach(function(fn){o[fn]=function(){apiCall(fn,[].slice.call(arguments)).then(function(r){if(ok)ok(r);},function(e){if(fail)fail(e);else console.error(e);});};});return o;}
+  window.google={script:{run:mk()}};
+})();
+</script>
+<script>
+(function(){
+  function run(b){window.__P=b.payload;window.__C=b.cfg;var sc=document.createElement('script');sc.text=document.getElementById('appjs').textContent;document.body.appendChild(sc);}
+  var app=document.getElementById('app');
+  if(app)app.innerHTML='<div class="card"><p class="muted" style="text-align:center;margin:30px 0">Memuat nota…</p></div>';
+  var t=(location.search.match(/[?&]t=([a-z0-9]+)/i)||[])[1]||'';
+  apiCall('signBoot',[t]).then(run,function(e){if(app)app.innerHTML='<div class="card"><h2>Gagal memuat</h2><p class="muted">'+String(e.message).replace(/</g,'&lt;')+'</p><button class="btn btn-primary" onclick="location.reload()">Coba lagi</button></div>';});
+})();
+</script>
+</body>
+</html>
