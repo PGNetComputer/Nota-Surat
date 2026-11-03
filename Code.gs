@@ -579,7 +579,7 @@ function notaByPur_() {
   const sh = getSheet_();
   const last = sh.getLastRow(), out = {};
   if (last < 2) return out;
-  const a0 = COL['Token'], a1 = COL['No Rekening'];             // Token..No Rekening
+  const a0 = COL['Token'], a1 = COL['Kanal'];                   // Token..Kanal
   const b0 = COL['Total'], b1 = COL['Ref PUR'];                 // Total..Ref PUR
   const A = sh.getRange(2, a0 + 1, last - 1, a1 - a0 + 1).getDisplayValues();
   const B = sh.getRange(2, b0 + 1, last - 1, b1 - b0 + 1).getDisplayValues();
@@ -588,7 +588,8 @@ function notaByPur_() {
     // rekening terakhir per nama (untuk isi otomatis di form admin)
     const nr = A[i][COL['No Rekening'] - a0];
     if (nr) {
-      const v = { namaRek: A[i][COL['Nama Rekening'] - a0], bank: A[i][COL['Bank'] - a0], noRek: nr };
+      const v = { namaRek: A[i][COL['Nama Rekening'] - a0], bank: A[i][COL['Bank'] - a0], noRek: nr,
+                  wa: A[i][COL['No WA Supplier'] - a0], kanal: A[i][COL['Kanal'] - a0], noNota: A[i][COL['No Nota'] - a0] };
       [A[i][COL['Nama Supplier'] - a0], v.namaRek].forEach(k => { k = String(k || '').trim().toLowerCase(); if (k) rek[k] = v; });
     }
     const pur = B[i][b1 - b0];

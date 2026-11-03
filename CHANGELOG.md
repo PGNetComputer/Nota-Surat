@@ -1,5 +1,8 @@
 # Catatan perubahan
 
+## 2026-11-03
+- Penjual langganan: kanal, rekening & no. WA terisi otomatis dari nota terakhir. Pop-up konfirmasi data penjual sebelum Buat Link.
+
 ## 2026-11-02
 - Admin (index.html) & halaman penjual (ttd.html) jalan di GitHub Pages; Apps Script jadi server lewat doPost (API_). Link penjual = SIGN_URL.
 

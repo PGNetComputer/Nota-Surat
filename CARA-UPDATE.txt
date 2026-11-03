@@ -1,3 +1,13 @@
+UPDATE (3 Nov 2026) — Penjual langganan + pop-up cek data
+------------------------------------------------------------
+1. Apps Script: ganti Code.gs & Admin → Terapkan → Kelola deployment → ✏ → Versi baru.
+2. GitHub: upload index.html (dan simulasi.html) dari nota-github.zip.
+Hasil:
+- Penjual yang pernah dibuatkan nota → Transaksi melalui, Nama rekening, Bank, No. rekening
+  & No. WhatsApp terisi otomatis (kotak hijau "Penjual langganan").
+- Sebelum link dibuat (WhatsApp / Datang Langsung) muncul pop-up "Pastikan data penjual sudah benar";
+  data yang berbeda dari nota sebelumnya ditandai kuning.
+
 UPDATE (2 Nov 2026) — Admin & halaman penjual pakai link GitHub
 ============================================================
 Link baru:

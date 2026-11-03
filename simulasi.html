@@ -267,9 +267,22 @@ body.adm{--navy:#188038;--soft:#e8f3eb}
 .stab.on{background:var(--navy);color:var(--navy-fg)}
 .stab.ic{flex:0 0 50px;padding:0;display:grid;place-items:center}
 .stab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.langg{background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:9px 12px;font-size:13.5px;margin-top:10px}
+#cfm{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:16px}
+.cf-dim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+.cf-box{position:relative;background:var(--card);color:var(--fg);border-radius:16px;padding:18px 16px 16px;width:min(420px,100%);max-height:92vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.cf-ic{width:44px;height:44px;border-radius:50%;background:#f9ab00;color:#fff;font-weight:800;font-size:24px;display:grid;place-items:center;margin:0 auto 8px}
+.cf-t{font-weight:800;font-size:17px;text-align:center}
+.cf-s{font-size:13.5px;color:var(--muted);text-align:center;margin:6px 0 12px}
+.cf-list{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px}
+.cf-r{display:grid;grid-template-columns:120px 1fr;gap:2px 10px;padding:9px 12px;font-size:14px;border-top:1px solid var(--line)}
+.cf-r:first-child{border-top:0}
+.cf-r span{color:var(--muted)}
+.cf-r b{word-break:break-word}
+.cf-r em{grid-column:2;font-style:normal;font-size:12px;color:#b06000}
+.cf-r.ch{background:#fff4dc}
+.cf-w{font-size:13px;color:#b06000;margin:-4px 0 12px;text-align:center}
 </style>
-</head>
-<body>
 <div class="wrap">
   <div class="sim"><div><b>Mode simulasi.</b> Kamu sekarang berperan sebagai <b id="role">Admin PGNet</b>. Tidak ada data yang tersimpan atau terkirim.</div><button class="btn btn-ghost btn-sm" id="reset" type="button">Ulangi</button></div>
   <div class="steps" aria-hidden="true"><span id="s1" class="on"></span><span id="s2"></span><span id="s3"></span><span id="s4"></span><span id="s5"></span><span id="s6"></span></div>
@@ -1287,18 +1300,24 @@ function inputsHTML(t){
   return '<div class="inp">'+fld('Total dibayar (sesuai transfer) *','<input id="q_tot" inputmode="numeric" value="'+fmtNum(t.total)+'">')+'<div class="hint" id="q_diff">Sama dengan subtotal barang.</div>'+
     '<button type="button" class="linkbtn" id="q_sdemo" style="margin-top:2px">Isi contoh: transfer lebih Rp 1.000.000</button>'+
     (p.mp?'<div class="kfix">Transaksi melalui: <b>'+esc(p.platform||'Marketplace')+'</b> <span class="muted">(otomatis)</span></div>':
-    '<div class="flbl">Transaksi melalui *</div><div class="chipsel" id="kch">'+['WhatsApp','Datang Langsung'].map(function(k){return '<button type="button" class="cs" data-k="'+k+'">'+k+'</button>';}).join('')+'</div>')+
-    (p.mp?'':(function(){var rk=SIM_REK[String(t.d).toLowerCase()]||{};return '<div class="rekbox"><div class="rekttl">Rekening penjual <span class="muted">(wajib)</span>'+(rk.noRek?' <span class="rekauto">terisi dari nota sebelumnya</span>':'')+'</div>'+
+    (simRek(t).noRek?'<div class="langg">♻ <b>Penjual langganan</b> — rekening, no. WhatsApp &amp; transaksi melalui terisi otomatis dari nota '+esc(simRek(t).noNota||'sebelumnya')+'. Tetap cek dulu ya.</div>':'')+
+    '<div class="flbl">Transaksi melalui *</div><div class="chipsel" id="kch">'+['WhatsApp','Datang Langsung'].map(function(k){return '<button type="button" class="cs'+(simRek(t).kanal===k?' on':'')+'" data-k="'+k+'">'+k+'</button>';}).join('')+'</div>')+
+    (p.mp?'':(function(){var rk=simRek(t);return '<div class="rekbox"><div class="rekttl">Rekening penjual <span class="muted">(wajib)</span>'+(rk.noRek?' <span class="rekauto">terisi otomatis</span>':'')+'</div>'+
       fld('Nama rekening *','<input id="q_nr" value="'+esc(rk.namaRek||p.rek||'')+'" autocomplete="off">')+
       '<div class="rek2">'+fld('Bank *','<input id="q_bank" list="bankList" value="'+esc(rk.bank||'')+'" placeholder="BCA / BRI / DANA…" autocomplete="off">')+fld('No. rekening *','<input id="q_no" inputmode="numeric" value="'+esc(rk.noRek||'')+'" autocomplete="off">')+'</div>'+
       '<datalist id="bankList">'+['BCA','BRI','BNI','Mandiri','BSI','CIMB Niaga','Permata','Danamon','BTN','SeaBank','Bank Jago','blu by BCA','DANA','OVO','GoPay','ShopeePay'].map(function(b){return '<option value="'+b+'">';}).join('')+'</datalist></div>';})())+
-    fld('No. WhatsApp supplier','<input id="q_wa" inputmode="tel" placeholder="08xxxxxxxxxx">')+
+    fld('No. WhatsApp supplier'+(simRek(t).wa?' <span class="rekauto">terisi otomatis</span>':''),'<input id="q_wa" inputmode="tel" placeholder="08xxxxxxxxxx" value="'+esc(simRek(t).wa||'')+'">')+
     '<label class="check"><input type="checkbox" id="q_ok"><span>Barang <b>sudah dites normal</b> &amp; <b>sudah ditransfer lunas</b>.</span></label><div id="q_err"></div></div>';
 }
-var KSEL=null,SIM_REK={};
+var KSEL=null,SIM_REK={
+  /* contoh: penjual yang pernah dibuatkan nota sebelumnya (di aplikasi asli diambil dari sheet nota) */
+  'syamsuri':{namaRek:'SYAMSURI',bank:'BRI',noRek:'012301045678501',wa:'081287654321',kanal:'WhatsApp',noNota:'PGN-20261020-002'},
+  'hari budi darmawan':{namaRek:'HARI BUDI DARMAWAN',bank:'BCA',noRek:'7310442189',wa:'085711223344',kanal:'Datang Langsung',noNota:'PGN-20261015-001'}
+};
+function simRek(t){return SIM_REK[String(t&&t.d||'').trim().toLowerCase()]||{};}
 function bindInputs(t){
   var qn=document.getElementById('q_no');if(qn)qn.oninput=function(){this.value=this.value.replace(/[^\d]/g,'');};
-  KSEL=null;
+  KSEL=simRek(t).kanal||null;
   document.querySelectorAll('#kch .cs').forEach(function(b){b.onclick=function(){document.querySelectorAll('#kch .cs').forEach(function(x){x.classList.remove('on');});b.classList.add('on');KSEL=b.getAttribute('data-k');var e=document.getElementById('q_err');e.className='';e.textContent='';};});
   var sd=document.getElementById('q_sdemo');if(sd&&t)sd.onclick=function(){var x=document.getElementById('q_tot');x.value=fmtNum(t.total+1000000);x.oninput();};
   var ti=document.getElementById('q_tot');if(ti&&t){ti.oninput=function(){this.value=fmtNum(num(this.value));var v=num(this.value),d=v-t.total;document.getElementById('q_diff').textContent=!v?'':d===0?'Sama dengan subtotal barang.':d<0?'Selisih −'+rp(-d).slice(3)+' (ongkir/potongan) — akan tercetak di nota.':'Lebih +'+rp(d).slice(3)+' → tercetak di nota sebagai “Sisa dana di penjual”.';};}
@@ -1313,9 +1332,33 @@ function submitFrom(t){
     if(!rk.bank){e.className='msg err';e.textContent='Isi bank penjual.';return false;}
     if(rk.noRek.length<6){e.className='msg err';e.textContent='Isi no. rekening penjual (minimal 6 angka).';return false;}}
   if(!document.getElementById('q_ok').checked){e.className='msg err';e.textContent='Centang dulu: barang sudah dites & sudah ditransfer.';return false;}
-  var d=makeNota(t,k,document.getElementById('q_wa').value,tot);
-  if(rk){d.namaRek=rk.namaRek;d.bank=rk.bank;d.noRek=rk.noRek;SIM_REK[String(t.d).toLowerCase()]=rk;}
-  USED[d.pur]=1;DONE[d.pur]={data:d,status:'Menunggu TTD'};DATA=d;closeSheet();setTimeout(viewLink,250);return true;
+  var wa=document.getElementById('q_wa').value.trim();
+  function go(){
+    var d=makeNota(t,k,wa,tot);
+    if(rk){d.namaRek=rk.namaRek;d.bank=rk.bank;d.noRek=rk.noRek;SIM_REK[String(t.d).trim().toLowerCase()]={namaRek:rk.namaRek,bank:rk.bank,noRek:rk.noRek,wa:wa,kanal:k,noNota:d.noNota};}
+    USED[d.pur]=1;DONE[d.pur]={data:d,status:'Menunggu TTD'};DATA=d;closeSheet();setTimeout(viewLink,250);
+  }
+  if(!rk){go();return true;}
+  confirmRek(t,{namaRek:rk.namaRek,bank:rk.bank,noRek:rk.noRek,wa:wa,kanal:k},go);
+  return true;
+}
+/* pop-up: pastikan data rekening & WA sudah benar sebelum link dibuat */
+function confirmRek(t,v,onOk){
+  var old=simRek(t),auto=!!old.noRek;
+  function row(lbl,val,key){var ch=auto&&old[key]!=null&&String(old[key])!==String(val);
+    return '<div class="cf-r'+(ch?' ch':'')+'"><span>'+lbl+'</span><b>'+(val?esc(val):'<i class="muted">— kosong —</i>')+'</b>'+(ch?'<em>berubah dari '+esc(old[key]||'kosong')+'</em>':'')+'</div>';}
+  var w=document.createElement('div');w.id='cfm';
+  w.innerHTML='<div class="cf-dim"></div><div class="cf-box" role="dialog" aria-label="Pastikan data penjual">'+
+    '<div class="cf-ic">!</div><div class="cf-t">Pastikan data penjual sudah benar</div>'+
+    '<p class="cf-s">Tolong pastikan <b>nama rekening, bank, nomor rekening</b> dan <b>no. WhatsApp</b> sama dengan rekening yang ditransfer &amp; nomor penjual'+(auto?' — data ini terisi otomatis dari nota sebelumnya':'')+'.</p>'+
+    '<div class="cf-list"><div class="cf-r"><span>Penjual</span><b>'+esc(t.d)+'</b></div>'+row('Nama rekening',v.namaRek,'namaRek')+row('Bank',v.bank,'bank')+row('No. rekening',v.noRek,'noRek')+row('No. WhatsApp',v.wa,'wa')+row('Transaksi melalui',v.kanal,'kanal')+'</div>'+
+    (v.wa?'':'<p class="cf-w">No. WhatsApp kosong — link nanti dikirim manual.</p>')+
+    '<button type="button" class="btn btn-primary" id="cfOk">Ya, sudah sama — Buat Link</button>'+
+    '<button type="button" class="btn btn-ghost" id="cfNo" style="margin-top:8px">Periksa lagi</button></div>';
+  document.body.appendChild(w);
+  var close=function(){w.remove();};
+  w.querySelector('.cf-dim').onclick=close;document.getElementById('cfNo').onclick=close;
+  document.getElementById('cfOk').onclick=function(){close();onOk();};
 }
 function note(){return '<p class="hint demo-note">Contoh data Juli & Oktober. Di aplikasi asli: daftar mulai 27 Oktober 2026 (untuk lihat hasil), pengingat DIRECT wajib nota mulai 1 November 2026.</p>'+
   '<label class="check" style="font-size:12.5px"><input type="checkbox" id="failToggle"'+(SIM_FAIL?' checked':'')+'><span>Uji coba: buat simpan berikutnya <b>gagal</b> (untuk melihat penanganan gagal)</span></label>';}
@@ -1549,5 +1592,4 @@ function kitFlow(msg,step,who){
 }
 </script>
 
-</body>
 </html>

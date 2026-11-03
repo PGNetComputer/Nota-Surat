@@ -97,6 +97,21 @@
   .tx-done{border-color:#9fd3b5;background:#f3fbf6}
   .tag-done{background:#e6f4ec;color:var(--ok)}.tag-bad{background:#fde8e7;color:var(--err)}
   .ttl-r{display:flex;align-items:center;gap:8px}
+  .langg{background:#e6f4ea;color:#137333;border-radius:10px;padding:9px 12px;font-size:13.5px;margin-top:12px}
+  #cfm{position:fixed;inset:0;z-index:999;display:grid;place-items:center;padding:16px}
+  .cf-dim{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+  .cf-box{position:relative;background:#fff;border-radius:16px;padding:18px 16px 16px;width:min(420px,100%);max-height:92vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+  .cf-ic{width:44px;height:44px;border-radius:50%;background:#f9ab00;color:#fff;font-weight:800;font-size:24px;display:grid;place-items:center;margin:0 auto 8px}
+  .cf-t{font-weight:800;font-size:17px;text-align:center}
+  .cf-s{font-size:13.5px;color:var(--muted);text-align:center;margin:6px 0 12px}
+  .cf-list{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:12px}
+  .cf-r{display:grid;grid-template-columns:120px 1fr;gap:2px 10px;padding:9px 12px;font-size:14px;border-top:1px solid var(--line)}
+  .cf-r:first-child{border-top:0}
+  .cf-r span{color:var(--muted)}
+  .cf-r b{word-break:break-word}
+  .cf-r em{grid-column:2;font-style:normal;font-size:12px;color:#b06000}
+  .cf-r.ch{background:#fff4dc}
+  .cf-w{font-size:13px;color:#b06000;margin:-4px 0 12px;text-align:center}
   .kitbtn{margin:4px 0 6px}
   .rekbox{background:#f1f8f3;border-radius:12px;padding:10px 12px 12px;margin-top:12px}
   .rekbox .flbl{margin-top:8px}
@@ -680,7 +695,9 @@ function waSend(link,wa,pur,total){
 var CUR=null,KSEL=null;
 function openSheet(pur){
   var t=bmByPur(pur);if(!t)return;CUR=t;
-  var inf=derive(t),dr=DRAFT[pur]||{};KSEL=dr.kanal||null;
+  var inf=derive(t),dr=DRAFT[pur]||{},RK=inf.kanal?{}:(rekFor(t,inf)||{});
+  KSEL=dr.kanal||(['WhatsApp','Datang Langsung'].indexOf(RK.kanal)>=0?RK.kanal:null);
+  var waPre=dr.wa!=null?dr.wa:waShow(RK.wa);
   var sub=t.total,tot=dr.total||sub;
   var head=inf.kanal==='Marketplace'?((inf.platform||'Marketplace')+(inf.inv?' · Invoice '+inf.inv:'')+(inf.nama?' · Toko '+inf.nama:'')):('Nama rekening: '+inf.rek);
   $('sheetBody').innerHTML=
@@ -688,14 +705,15 @@ function openSheet(pur){
     '<div class="sum-items">'+t.items.map(function(i){return '<div class="sum-it"><span>'+esc(i.nama)+'</span><span class="q">'+i.qty+'×</span><span class="s">'+rp(i.qty*i.harga)+'</span></div>';}).join('')+'</div>'+
     '<div class="sumrow"><span>Subtotal barang</span><b>'+rp(sub)+'</b></div>'+
     '<label class="flbl">Total dibayar (sesuai transfer) *</label><input id="sTot" inputmode="numeric" value="'+fmtNum(tot)+'"><div id="sDiff" class="hint"></div>'+
+    (RK.noRek?'<div class="langg">♻ <b>Penjual langganan</b> — rekening, no. WhatsApp &amp; transaksi melalui terisi otomatis dari nota '+esc(RK.noNota||'sebelumnya')+'. Tetap cek dulu ya.</div>':'')+
     (inf.kanal?'<div class="kfix">Transaksi melalui: <b>'+esc(inf.platform||'Marketplace')+'</b> <span class="muted">(otomatis)</span></div>':
       '<label class="flbl">Transaksi melalui *</label><div class="chipsel" id="kch">'+['WhatsApp','Datang Langsung'].map(function(k){return '<button type="button" class="cs'+(KSEL===k?' on':'')+'" data-k="'+k+'">'+k+'</button>';}).join('')+'</div>')+
     (inf.kanal?'':(function(){var rk=rekFor(t,inf)||{};var nr=dr.namaRek!=null?dr.namaRek:(rk.namaRek||inf.rek||''),bk=dr.bank!=null?dr.bank:(rk.bank||''),no=dr.noRek!=null?dr.noRek:(rk.noRek||'');
-      return '<div class="rekbox"><div class="rekttl">Rekening penjual <span class="muted">(wajib)</span>'+(rk.noRek&&dr.noRek==null?' <span class="rekauto">terisi dari nota sebelumnya</span>':'')+'</div>'+
+      return '<div class="rekbox"><div class="rekttl">Rekening penjual <span class="muted">(wajib)</span>'+(rk.noRek&&dr.noRek==null?' <span class="rekauto">terisi otomatis</span>':'')+'</div>'+
       '<label class="flbl">Nama rekening *</label><input id="sNr" value="'+esc(nr)+'" autocomplete="off">'+
       '<div class="rek2"><div><label class="flbl">Bank *</label><input id="sBank" list="bankList" value="'+esc(bk)+'" placeholder="BCA / BRI / DANA…" autocomplete="off"></div>'+
       '<div><label class="flbl">No. rekening *</label><input id="sNo" inputmode="numeric" value="'+esc(no)+'" autocomplete="off"></div></div></div>';})())+
-    '<label class="flbl">No. WhatsApp supplier</label><input id="sWa" inputmode="tel" placeholder="08xxxxxxxxxx" value="'+esc(dr.wa||'')+'">'+
+    '<label class="flbl">No. WhatsApp supplier'+(RK.wa&&dr.wa==null?' <span class="rekauto">terisi otomatis</span>':'')+'</label><input id="sWa" inputmode="tel" placeholder="08xxxxxxxxxx" value="'+esc(waPre||'')+'">'+
     '<label class="chk"><input type="checkbox" id="sOk"><span>Barang <b>sudah dites normal</b> &amp; <b>sudah ditransfer lunas</b>.</span></label>'+
     '<div id="sErr"></div>';
   var save=debounce(function(){var o={kanal:KSEL,wa:$('sWa').value,total:num($('sTot').value)};if($('sNo')){o.namaRek=$('sNr').value;o.bank=$('sBank').value;o.noRek=$('sNo').value;}DRAFT[pur]=o;LS.set('nota_draft',DRAFT);},300);
@@ -723,8 +741,13 @@ function submitSheet(){
     if(rk.noRek.length<6)return sErr('Isi no. rekening penjual (minimal 6 angka).');
   }
   if(!$('sOk').checked)return sErr('Centang dulu: barang sudah dites & sudah ditransfer.');
-  var token=genToken(),wa=$('sWa').value.trim();
-  if(rk){[t.d,inf.rek,inf.nama,rk.namaRek].forEach(function(k){k=String(k||'').trim().toLowerCase();if(k)REK[k]=rk;});LS.set('nota_rek',REK);}
+  var wa=$('sWa').value.trim();
+  if(rk)return confirmRek(t,inf,{namaRek:rk.namaRek,bank:rk.bank,noRek:rk.noRek,wa:wa,kanal:k},function(){enqueue(t,inf,k,tot,rk,wa);});
+  enqueue(t,inf,k,tot,rk,wa);
+}
+function enqueue(t,inf,k,tot,rk,wa){
+  var token=genToken();
+  if(rk){var mem={namaRek:rk.namaRek,bank:rk.bank,noRek:rk.noRek,wa:waNorm(wa),kanal:k,noNota:''};[t.d,inf.rek,inf.nama,rk.namaRek].forEach(function(x){x=String(x||'').trim().toLowerCase();if(x)REK[x]=mem;});LS.set('nota_rek',REK);}
   var item={token:token,pur:t.pur,title:t.d,total:tot,wa:waNorm(wa),status:'pending',err:'',noNota:'',at:Date.now(),
     payload:{pur:t.pur,kanal:inf.kanal?'':k,waSupplier:wa,totalBayar:tot,konfirmasi:true,token:token,namaRek:rk?rk.namaRek:'',bank:rk?rk.bank:'',noRek:rk?rk.noRek:''}};
   Q.push(item);LS.set('nota_q',Q);delete DRAFT[t.pur];LS.set('nota_draft',DRAFT);
@@ -856,6 +879,27 @@ function openKit(){
 }
 
 (function(){var dl=document.getElementById('bankList');if(dl)dl.innerHTML=BANKS.map(function(b){return '<option value="'+b+'">';}).join('');})();
+
+/* ---- penjual langganan: tampil no. WA 08… & pop-up cek data sebelum link dibuat ---- */
+function waShow(v){var s=String(v||'').replace(/\D/g,'');if(!s)return '';return s.indexOf('62')===0?'0'+s.slice(2):s;}
+function confirmRek(t,inf,v,onOk){
+  var old=rekFor(t,inf)||{},auto=!!old.noRek;
+  function same(key,a,b){return key==='wa'?waNorm(a)===waNorm(b):String(a||'').trim().toLowerCase()===String(b||'').trim().toLowerCase();}
+  function row(lbl,val,key,shown){var ch=auto&&old[key]&&!same(key,old[key],val);
+    return '<div class="cf-r'+(ch?' ch':'')+'"><span>'+lbl+'</span><b>'+(val?esc(shown||val):'<i class="muted">— kosong —</i>')+'</b>'+(ch?'<em>berubah dari '+esc(key==='wa'?waShow(old[key]):old[key])+'</em>':'')+'</div>';}
+  var w=document.createElement('div');w.id='cfm';
+  w.innerHTML='<div class="cf-dim"></div><div class="cf-box" role="dialog" aria-label="Pastikan data penjual">'+
+    '<div class="cf-ic">!</div><div class="cf-t">Pastikan data penjual sudah benar</div>'+
+    '<p class="cf-s">Tolong pastikan <b>nama rekening, bank, nomor rekening</b> dan <b>no. WhatsApp</b> sama dengan rekening yang ditransfer &amp; nomor penjual'+(auto?' — sebagian terisi otomatis dari nota sebelumnya':'')+'.</p>'+
+    '<div class="cf-list"><div class="cf-r"><span>Penjual</span><b>'+esc(t.d)+'</b></div>'+row('Nama rekening',v.namaRek,'namaRek')+row('Bank',v.bank,'bank')+row('No. rekening',v.noRek,'noRek')+row('No. WhatsApp',v.wa,'wa',waShow(v.wa))+row('Transaksi melalui',v.kanal,'kanal')+'</div>'+
+    (v.wa?'':'<p class="cf-w">No. WhatsApp kosong — link nanti dikirim manual.</p>')+
+    '<button type="button" class="btn btn-primary" id="cfOk">Ya, sudah sama — Buat Link</button>'+
+    '<button type="button" class="btn btn-ghost" id="cfNo" style="margin-top:8px">Periksa lagi</button></div>';
+  document.body.appendChild(w);
+  function close(){w.remove();}
+  w.querySelector('.cf-dim').onclick=close;$('cfNo').onclick=close;
+  $('cfOk').onclick=function(){close();onOk();};
+}
 </script>
 <script>
 /* Jembatan ke Google Apps Script: google.script.run → POST ke …/exec */
