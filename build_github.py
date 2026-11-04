@@ -1,7 +1,7 @@
 """Bangun halaman GitHub (index.html = Admin, ttd.html = Penjual) dari Admin.html & Sign.html Apps Script."""
 import re,sys
 EXEC='https://script.google.com/macros/s/AKfycbwELr_aZoLwhSdJ-wdSGhTsxLRLleXWeGh7Ug2FzHLNtjnKVo85FnLoehtdurocfofFSA/exec'
-FNS=['adminBoot','signBoot','adminLogin','createTrx','listTrx','deleteTrx','getBM','getChatKit','getVideoData','submitSignature']
+FNS=['adminBoot','signBoot','adminLogin','createTrx','listTrx','deleteTrx','getBM','getChatKit','getVideoData','submitSignature','uploadBukti','simpanTokenPush','tesNotif']
 SHIM=r"""<script>
 /* Jembatan ke Google Apps Script: google.script.run → POST ke …/exec */
 var API_URL='%s';
@@ -22,7 +22,7 @@ def build(src,boot_js,title):
     s=open(src).read()
     s=re.sub(r'<script>/\* dibuka dari GitHub.*?</script>\n','',s,count=1,flags=re.S)
     s=s.replace('<base target="_top">\n','',1)
-    s=s.replace('<meta charset="utf-8">','<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">\n<title>%s</title>\n<meta name="theme-color" content="#188038">'%title,1)
+    s=s.replace('<meta charset="utf-8">','<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">\n<title>%s</title>\n<meta name="theme-color" content="#188038">\n<link rel="manifest" href="manifest.json">\n<link rel="apple-touch-icon" href="icon-192.png">\n<link rel="icon" href="icon-192.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<script src="config.js"></script>'%title,1)
     s=s.replace('<html>','<html lang="id">',1)
     s=s.replace('<?!= payload ?>','window.__P').replace('<?!= cfg ?>','window.__C')
     assert '<?' not in s

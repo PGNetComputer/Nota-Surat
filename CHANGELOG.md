@@ -1,5 +1,11 @@
 # Catatan perubahan
 
+## 2026-11-04
+- Notifikasi harian (Firebase Cloud Messaging) ±20.00 WIB bila ada DIRECT belum dibuat nota. PWA: manifest, sw.js, config.js, ikon. Ingatan hanya no. WA. Tampilan form ringkas di simulasi.
+
+## 2026-11-03 (b)
+- Bukti transfer: tempel/pilih screenshot (multi), OCR otomatis (bank, nama, no. rek, jumlah), ringkasan SS vs aplikasi, total = jumlah TF, lampiran bukti di halaman terakhir PDF, uploadBukti → Drive/Bukti TF.
+
 ## 2026-11-03
 - Penjual langganan: kanal, rekening & no. WA terisi otomatis dari nota terakhir. Pop-up konfirmasi data penjual sebelum Buat Link.
 

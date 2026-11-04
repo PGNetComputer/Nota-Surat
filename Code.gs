@@ -30,6 +30,20 @@ const CONFIG = {
   BM_SHEET: 'Barang Masuk',
   BM_START: '2026-10-27',          // daftar Barang Masuk ditampilkan mulai tanggal ini
   WAJIB_START: '2026-11-01',       // DIRECT wajib nota (pop-up pengingat) mulai tanggal ini
+  APP_URL: 'https://pgnetcomputer.github.io/Nota-Surat/',  // dibuka saat notifikasi diketuk
+  JAM_PENGINGAT: 20,               // notifikasi harian jam 20.00 WIB
+
+  // --- Akun admin. Password tiap akun disimpan di Properti skrip: PIN_AGDA, PIN_ERIK, PIN_RAFI, PIN_YUSWAN, PIN_FIKRI, PIN_SRI ---
+  //   mode 'direct' = wajib membuat nota SEMUA transaksi DIRECT (lihat semua transaksi)
+  //   cocok: '...'  = hanya transaksi Barang Masuk yang kolom D-nya memuat kata ini (nama supplier = nama dia)
+  AKUN: {
+    Agda:   { mode: 'direct' },
+    Erik:   { cocok: 'ERIK' },
+    Rafi:   { cocok: 'RAFI' },
+    Yuswan: { cocok: 'YUSWAN' },
+    Fikri:  { cocok: 'FIKRI' },
+    Sri:    { cocok: 'SRI' },
+  },
   CACHE_TTL: 300,                  // 5 menit
 
   // --- Template chat ke penjual (fitur "Chat ke penjual" di halaman admin) ---
@@ -47,7 +61,7 @@ const HEADERS = [
   'Nama Rekening', 'Bank', 'No Rekening', 'Kanal', 'No Transaksi Marketplace',
   'Keterangan', 'Items (JSON)', 'Total',
   'Status', 'Dibuat', 'Ditandatangani', 'Link PDF',
-  'Ref PUR', 'Subtotal Barang'
+  'Ref PUR', 'Subtotal Barang', 'Bukti TF', 'Dibuat Oleh'
 ];
 const COL = HEADERS.reduce((o, h, i) => (o[h] = i, o), {});
 
@@ -108,7 +122,8 @@ function getFolder_() {
  * Hanya fungsi di daftar API_ yang bisa dipanggil; fungsi admin tetap dicek PIN-nya. */
 const API_ = {
   adminBoot: adminBoot, signBoot: signBoot, adminLogin: adminLogin, createTrx: createTrx, listTrx: listTrx,
-  deleteTrx: deleteTrx, getBM: getBM, getChatKit: getChatKit, getVideoData: getVideoData, submitSignature: submitSignature
+  deleteTrx: deleteTrx, getBM: getBM, getChatKit: getChatKit, getVideoData: getVideoData, submitSignature: submitSignature,
+  uploadBukti: uploadBukti, simpanTokenPush: simpanTokenPush, tesNotif: tesNotif
 };
 function doPost(e) {
   let out;
@@ -124,7 +139,7 @@ function doPost(e) {
 }
 function cfgPublic_() { return { nama: CONFIG.NAMA_TOKO, wa: CONFIG.WA_PGNET, kota: CONFIG.KOTA }; }
 function adminBoot() {
-  return { payload: { kanal: KANAL_LIST, url: signBase_(), start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START }, cfg: cfgPublic_() };
+  return { payload: { kanal: KANAL_LIST, url: signBase_(), start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START, akun: Object.keys(CONFIG.AKUN) }, cfg: cfgPublic_() };
 }
 function signBoot(token) {
   const trx = token ? findByToken_(String(token)) : null;
@@ -140,7 +155,7 @@ function doGet(e) {
     t.payload = safeJson_(trx ? publicView_(trx) : null);
   } else {
     t = HtmlService.createTemplateFromFile('Admin');
-    t.payload = safeJson_({ kanal: KANAL_LIST, url: signBase_(), start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START });
+    t.payload = safeJson_({ kanal: KANAL_LIST, url: signBase_(), start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START, akun: Object.keys(CONFIG.AKUN) });
   }
   t.cfg = safeJson_({ nama: CONFIG.NAMA_TOKO, wa: CONFIG.WA_PGNET, kota: CONFIG.KOTA });
   return t.evaluate()
@@ -152,18 +167,37 @@ function doGet(e) {
 /* ============================== ADMIN API ============================== */
 
 function checkPin_(pin) {
-  // PIN diambil dari Properti skrip (tidak ikut tersimpan di kode/GitHub); kalau belum diisi pakai CONFIG.ADMIN_PIN
+  pin = String(pin || '');
+  const i = pin.indexOf('|');
+  if (i > 0) {                                   // akun bernama: "Nama|password"
+    const nama = pin.slice(0, i), kode = pin.slice(i + 1), cfg = CONFIG.AKUN[nama];
+    if (!cfg) throw new Error('Akun tidak dikenal.');
+    const real = PropertiesService.getScriptProperties().getProperty('PIN_' + nama.toUpperCase());
+    if (!real) throw new Error('Password akun ' + nama + ' belum dibuat. Minta Kak Sri mengisi PIN_' + nama.toUpperCase() + ' di Properti skrip.');
+    if (kode !== String(real)) throw new Error('Password salah.');
+    return { nama: nama, mode: cfg.mode || 'nama', cocok: cfg.cocok || '' };
+  }
+  // PIN admin utama (Pak Hani) — lihat semua
   const real = PropertiesService.getScriptProperties().getProperty('ADMIN_PIN') || CONFIG.ADMIN_PIN;
-  if (String(pin) !== String(real)) throw new Error('PIN salah.');
+  if (pin !== String(real)) throw new Error('PIN salah.');
+  return { nama: 'Admin', mode: 'semua', cocok: '' };
+}
+
+function milikAkun_(akun, t) {
+  if (!akun || akun.mode !== 'nama') return true;
+  return new RegExp('\\b' + akun.cocok.replace(/[^\w ]/g, '') + '\\b', 'i').test(String(t.d || ''));
+}
+function wajibAkun_(akun, t) {
+  return akun.mode === 'nama' ? milikAkun_(akun, t) : /^direct$/i.test(t.jenis || '');
 }
 
 function adminLogin(pin) {
-  checkPin_(pin);
-  return true;
+  const a = checkPin_(pin);
+  return { nama: a.nama, mode: a.mode };
 }
 
 function createTrx(pin, d) {
-  checkPin_(pin);
+  const akun = checkPin_(pin);
   d = d || {};
   if (d.konfirmasi !== true) throw new Error('Centang konfirmasi: barang sudah dites normal & sudah ditransfer.');
   const token = /^[a-z0-9]{16,40}$/.test(String(d.token || '')) ? String(d.token) : Utilities.getUuid().replace(/-/g, '').slice(0, 20);
@@ -172,6 +206,7 @@ function createTrx(pin, d) {
     // --- dari Barang Masuk: server penentu akhir (data barang diambil ulang dari sumber) ---
     const tx = findBMTx_(String(d.pur));
     if (!tx) throw new Error('Transaksi ' + d.pur + ' tidak ditemukan di Barang Masuk (mulai ' + CONFIG.BM_START + ').');
+    if (!milikAkun_(akun, tx)) throw new Error('Transaksi ini bukan atas nama ' + akun.nama + '.');
     const info = deriveBM_(tx);
     let kanal = info.kanal;
     if (!kanal) {
@@ -218,6 +253,7 @@ function createTrx(pin, d) {
             subtotal: subtotal, total: subtotal, pur: '' };
   }
   if (!(rec.total > 0)) throw new Error('Total dibayar harus lebih dari 0.');
+  rec.bukti = cleanBukti_(d.bukti);
 
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
@@ -251,6 +287,8 @@ function createTrx(pin, d) {
     row[COL['Dibuat']] = now;
     row[COL['Ref PUR']] = rec.pur;
     row[COL['Subtotal Barang']] = String(rec.subtotal);
+    row[COL['Bukti TF']] = rec.bukti.length ? JSON.stringify(rec.bukti) : '';
+    row[COL['Dibuat Oleh']] = akun.nama;
     const at = sh.getLastRow() + 1;
     sh.getRange(at, 1, 1, HEADERS.length).setNumberFormat('@').setValues([row]); // tulis 1 rentang
     return resultFromRow_(row);
@@ -265,7 +303,7 @@ function resultFromRow_(v) {
 }
 
 function listTrx(pin) {
-  checkPin_(pin);
+  const akun = checkPin_(pin);
   const sh = getSheet_();
   const last = sh.getLastRow();
   if (last < 2) return [];
@@ -286,11 +324,17 @@ function listTrx(pin) {
     signedAt: r[COL['Ditandatangani']],
     pdf: r[COL['Link PDF']],
     link: base + '?t=' + r[COL['Token']],
-  })).reverse();
+    oleh: r[COL['Dibuat Oleh']] || '',
+  })).filter(x => akun.mode !== 'nama' || x.oleh === akun.nama || milikPur_(akun, x.pur)).reverse();
+}
+function milikPur_(akun, pur) {
+  if (!pur) return false;
+  if (!milikPur_.set) { const s = {}; getBMData_(false).tx.forEach(t => { if (milikAkun_(akun, t)) s[t.pur] = 1; }); milikPur_.set = s; }
+  return !!milikPur_.set[pur];
 }
 
 function deleteTrx(pin, id) {
-  checkPin_(pin);
+  if (checkPin_(pin).mode === 'nama') throw new Error('Hapus nota hanya bisa oleh Agda / admin.');
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -323,6 +367,7 @@ function submitSignature(token, sigNota, sigPernyataan) {
       return { already: true, url: trx.pdf, fileName: fileName_(trx) };
     }
     const signedAt = Utilities.formatDate(new Date(), tz_(), 'yyyy-MM-dd HH:mm:ss');
+    trx.buktiImgs = buktiImgs_(trx.bukti);
     const html = buildPdfHtml_(trx, sigNota, sigPernyataan, signedAt);
     const blob = Utilities.newBlob(html, 'text/html', 'nota.html').getAs('application/pdf').setName(fileName_(trx));
     const file = getFolder_().createFile(blob);
@@ -378,7 +423,9 @@ function buildPdfHtml_(t, sigNota, sigPernyataan, signedAt) {
   const sigBlock = (img, label) =>
     '<div class="sig"><div>' + label + '</div><img src="' + img + '"/><div class="line">' + (esc_(t.supplier) || '&nbsp;') + '</div></div>';
   const isMp = t.kanal === 'Marketplace';
-  const bayarLine = isMp ? '<b>LUNAS</b>, dibayar melalui marketplace' : '<b>LUNAS</b>, ditransfer ke rekening di atas';
+  const nTf = (t.bukti || []).length;
+  const bayarLine = (isMp ? '<b>LUNAS</b>, dibayar melalui marketplace' : '<b>LUNAS</b>, ditransfer ke rekening di atas') +
+    (nTf ? ' (' + (nTf > 1 ? nTf + '× transfer, ' : '') + 'bukti terlampir)' : '');
   const supLabel = isMp ? 'Nama Toko' : 'Nama Supplier / Penjual';
 
   const nota =
@@ -436,7 +483,7 @@ function buildPdfHtml_(t, sigNota, sigPernyataan, signedAt) {
     '<p class="muted" style="margin-top:20px">Ditandatangani secara elektronik pada ' + esc_(signedAt) + ' WIB.</p>' +
     '</div>';
 
-  return '<html><head><meta charset="utf-8"><style>' + css + '</style></head><body>' + nota + pernyataan + '</body></html>';
+  return '<html><head><meta charset="utf-8"><style>' + css + '</style></head><body>' + nota + pernyataan + lampiranHtml_(t) + '</body></html>';
 }
 
 /* ============================== HELPERS ============================== */
@@ -464,12 +511,14 @@ function rowToTrx_(r) {
     status: r[COL['Status']],
     signedAt: String(r[COL['Ditandatangani']] || ''),
     pdf: r[COL['Link PDF']],
+    bukti: parseBukti_(r[COL['Bukti TF']]),
   };
 }
 
 function publicView_(t) {
   const v = Object.assign({}, t);
   delete v.id;            // token tetap dikirim (dipakai saat submit TTD)
+  v.bukti = (t.bukti || []).map(b => ({ bank: b.bank, nama: b.nama, noRek: b.noRek, jumlah: b.jumlah }));
   v.kanalText = kanalTextPlain_(t);
   return v;
 }
@@ -566,12 +615,12 @@ function safeJson_(o) {
 
 /** Dipanggil halaman admin saat buka & tiap 4 menit (hanya kalau tab terlihat). */
 function getBM(pin, force) {
-  checkPin_(pin);
+  const akun = checkPin_(pin);
   const data = getBMData_(!!force);
   const notes = notaByPur_();
   // semua transaksi dikirim; yang sudah dibuat nota diberi info nota (untuk tab "Sudah dibuat")
-  const tx = data.tx.map(t => notes[t.pur] ? Object.assign({}, t, { nota: notes[t.pur] }) : t);
-  return { tx: tx, at: data.at, stale: data.stale || '', start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START, rek: notes.__rek || {} };
+  const tx = data.tx.filter(t => milikAkun_(akun, t)).map(t => notes[t.pur] ? Object.assign({}, t, { nota: notes[t.pur] }) : t);
+  return { tx: tx, at: data.at, stale: data.stale || '', start: CONFIG.BM_START, wajib: CONFIG.WAJIB_START, rek: notes.__rek || {}, akun: { nama: akun.nama, mode: akun.mode } };
 }
 
 /** Info nota per Ref PUR — dibaca per rentang sempit (2 blok kolom), bukan per sel. */
@@ -586,11 +635,11 @@ function notaByPur_() {
   const base = signBase_(), rek = {};
   for (let i = 0; i < B.length; i++) {
     // rekening terakhir per nama (untuk isi otomatis di form admin)
-    const nr = A[i][COL['No Rekening'] - a0];
-    if (nr) {
-      const v = { namaRek: A[i][COL['Nama Rekening'] - a0], bank: A[i][COL['Bank'] - a0], noRek: nr,
-                  wa: A[i][COL['No WA Supplier'] - a0], kanal: A[i][COL['Kanal'] - a0], noNota: A[i][COL['No Nota'] - a0] };
-      [A[i][COL['Nama Supplier'] - a0], v.namaRek].forEach(k => { k = String(k || '').trim().toLowerCase(); if (k) rek[k] = v; });
+    // ingatan no. WA penjual: berdasarkan nama penjual & no. rekening (dari screenshot)
+    const nr = A[i][COL['No Rekening'] - a0], wa = A[i][COL['No WA Supplier'] - a0];
+    if (wa) {
+      const v = { wa: wa, kanal: A[i][COL['Kanal'] - a0], noNota: A[i][COL['No Nota'] - a0] };
+      [A[i][COL['Nama Supplier'] - a0], nr ? 'rek:' + nr : ''].forEach(k => { k = String(k || '').trim().toLowerCase(); if (k) rek[k] = v; });
     }
     const pur = B[i][b1 - b0];
     if (!pur) continue;
@@ -754,3 +803,173 @@ function findVideo_() {
   props.setProperty('VIDEO_ID', f.getId());
   return f;
 }
+
+
+/* ============================== BUKTI TRANSFER ============================== */
+
+// Simpan 1 gambar bukti transfer (JPEG/PNG base64) ke folder Drive "Bukti TF". Dipanggil admin saat SS ditambahkan.
+function uploadBukti(pin, f) {
+  checkPin_(pin);
+  f = f || {};
+  const m = String(f.b64 || '').match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+  if (!m) throw new Error('Format gambar tidak dikenali.');
+  if (m[2].length > 4000000) throw new Error('Gambar terlalu besar.');
+  const name = 'TF-' + Utilities.formatDate(new Date(), tz_(), 'yyyyMMdd-HHmmss') + '-' + String(f.name || 'bukti').replace(/[^\w.-]/g, '').slice(0, 40);
+  const file = buktiFolder_().createFile(Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], name));
+  return { id: file.getId() };
+}
+
+function buktiFolder_() {
+  const parent = getFolder_();
+  const it = parent.getFoldersByName('Bukti TF');
+  return it.hasNext() ? it.next() : parent.createFolder('Bukti TF');
+}
+
+function cleanBukti_(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.slice(0, 8).map(b => ({
+    id: /^[\w-]{10,}$/.test(String(b && b.id || '')) ? String(b.id) : '',
+    bank: String(b && b.bank || '').slice(0, 40),
+    nama: String(b && b.nama || '').slice(0, 80),
+    noRek: String(b && b.noRek || '').replace(/[^\d]/g, '').slice(0, 20),
+    jumlah: Math.max(0, Math.round(Number(b && b.jumlah) || 0)),
+  })).filter(b => b.id || b.jumlah);
+}
+
+function parseBukti_(v) {
+  if (!v) return [];
+  try { const a = JSON.parse(v); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+
+function buktiImgs_(bukti) {
+  return (bukti || []).map(b => {
+    let src = '';
+    if (b.id) {
+      try { const bl = DriveApp.getFileById(b.id).getBlob(); src = 'data:' + bl.getContentType() + ';base64,' + Utilities.base64Encode(bl.getBytes()); } catch (e) { /* file hilang */ }
+    }
+    return { src: src, bank: b.bank, nama: b.nama, noRek: b.noRek, jumlah: b.jumlah };
+  });
+}
+
+// Halaman terakhir PDF: daftar transfer + gambar bukti
+function lampiranHtml_(t) {
+  const L = t.buktiImgs || [];
+  if (!L.length) return '';
+  const tot = L.reduce((s, b) => s + (Number(b.jumlah) || 0), 0);
+  const rows = L.map((b, i) => '<tr><td class="c">' + (i + 1) + '</td><td>' + esc_(b.bank || '-') + '</td><td>' + esc_(b.nama || '-') +
+    '</td><td>' + esc_(b.noRek || '-') + '</td><td class="r">' + rp_(b.jumlah) + '</td></tr>').join('');
+  const imgs = L.filter(b => b.src).map((b, i) => '<div style="display:inline-block;width:31%;margin:0 1% 10px;vertical-align:top;text-align:center">' +
+    '<img src="' + b.src + '" style="width:100%;border:1px solid #bbb"/><div class="muted">Bukti ' + (i + 1) + '</div></div>').join('');
+  return '<div class="page" style="page-break-before:always">' +
+    '<div class="hdr"><h1>LAMPIRAN · BUKTI TRANSFER</h1><div class="muted">Nota No. ' + esc_(t.noNota) + '</div></div>' +
+    '<table class="items"><tr><th width="6%">No</th><th>Bank / Aplikasi</th><th>Nama Rekening</th><th>No. Rekening</th><th width="22%">Jumlah</th></tr>' + rows +
+    '<tr><td colspan="4" class="r"><b>Total transfer</b></td><td class="r"><b>' + rp_(tot) + '</b></td></tr></table><br/>' + imgs + '</div>';
+}
+
+
+/* ============================== NOTIFIKASI (Firebase Cloud Messaging) ==============================
+ * Persiapan (sekali, lihat Panduan Notifikasi):
+ *  1. Properti skrip NOTA_FCM_SA = isi file kunci akun layanan Firebase (.json)
+ *  2. Jalankan pasangPengingat() sekali dari editor → notifikasi tiap hari ±20.00 WIB
+ *  3. Di HP: buka aplikasi dari GitHub → tab Daftar → Aktifkan notifikasi
+ */
+function simpanTokenPush(pin, token) {
+  const akun = checkPin_(pin);
+  token = String(token || '').trim();
+  if (!/^[\w:\-]{20,}$/.test(token)) throw new Error('Token notifikasi tidak valid.');
+  const list = daftarToken_().filter(x => x.t !== token);
+  list.unshift({ t: token, a: akun.nama });
+  PropertiesService.getScriptProperties().setProperty('NOTA_PUSH', JSON.stringify(list.slice(0, 40)));
+  return { jumlah: list.length, akun: akun.nama };
+}
+function daftarToken_() {
+  let list = [];
+  try { list = JSON.parse(PropertiesService.getScriptProperties().getProperty('NOTA_PUSH') || '[]'); } catch (e) {}
+  return list.map(x => typeof x === 'string' ? { t: x, a: 'Admin' } : x);
+}
+
+function tesNotif(pin) {
+  const akun = checkPin_(pin);
+  const n = kirimPush_('🔔 Tes notifikasi Nota PGNet', 'Halo ' + akun.nama + ', notifikasi di HP ini sudah jalan.', x => x.a === akun.nama);
+  return { terkirim: n };
+}
+
+// Dipanggil pemicu harian (lihat pasangPengingat)
+function pengingatHarian() {
+  const data = getBMData_(true);
+  const notes = notaByPur_();
+  const akunList = [{ nama: 'Admin', mode: 'semua', cocok: '' }].concat(Object.keys(CONFIG.AKUN).map(n => ({ nama: n, mode: CONFIG.AKUN[n].mode || 'nama', cocok: CONFIG.AKUN[n].cocok || '' })));
+  let total = 0;
+  akunList.forEach(akun => {
+    const belum = data.tx.filter(t => t.tgl >= CONFIG.WAJIB_START && !notes[t.pur] && wajibAkun_(akun, t));
+    if (!belum.length) return;
+    belum.sort((a, b) => a.tgl < b.tgl ? -1 : 1);
+    const nama = belum.slice(0, 3).map(t => t.d.split('/').pop().trim()).join(', ') + (belum.length > 3 ? ', dll.' : '');
+    const judul = akun.mode === 'nama' ? '📝 ' + akun.nama + ', ' + belum.length + ' barang masuk atas namamu belum dibuat nota'
+                                       : '📝 ' + belum.length + ' transaksi DIRECT belum dibuat nota';
+    total += kirimPush_(judul, nama + ' — ketuk untuk buat nota sekarang.', x => x.a === akun.nama);
+  });
+  return total;
+}
+
+// Jalankan SEKALI dari editor Apps Script (pilih fungsi ini → Jalankan)
+function pasangPengingat() {
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'pengingatHarian').forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.newTrigger('pengingatHarian').timeBased().everyDays(1).atHour(CONFIG.JAM_PENGINGAT).nearMinute(0).inTimezone('Asia/Jakarta').create();
+  return 'Pengingat harian terpasang: setiap hari sekitar jam ' + CONFIG.JAM_PENGINGAT + '.00 WIB.';
+}
+
+function kirimPush_(judul, isi, saring) {
+  const sa = fcmAkun_();
+  if (!sa) throw new Error('Kunci Firebase belum diisi (Properti skrip NOTA_FCM_SA).');
+  const props = PropertiesService.getScriptProperties();
+  const semua = daftarToken_();
+  const list = saring ? semua.filter(saring) : semua;
+  if (!list.length) return 0;
+  const akses = fcmAksesToken_(sa);
+  const url = 'https://fcm.googleapis.com/v1/projects/' + sa.project_id + '/messages:send';
+  const reqs = list.map(x => x.t).map(tok => ({
+    url: url, method: 'post', contentType: 'application/json', muteHttpExceptions: true,
+    headers: { Authorization: 'Bearer ' + akses },
+    payload: JSON.stringify({ message: { token: tok,
+      webpush: { notification: { title: judul, body: isi, icon: CONFIG.APP_URL + 'icon-192.png', badge: CONFIG.APP_URL + 'icon-192.png', tag: 'nota-pgnet', renotify: true },
+                 fcm_options: { link: CONFIG.APP_URL } } } })
+  }));
+  const res = UrlFetchApp.fetchAll(reqs);
+  let ok = 0; const buang = {};
+  res.forEach((r, i) => {
+    const c = r.getResponseCode();
+    if (c === 200) ok++;
+    else if (c === 404 || /UNREGISTERED|INVALID_ARGUMENT/.test(r.getContentText())) buang[list[i].t] = 1;   // token kedaluwarsa
+  });
+  props.setProperty('NOTA_PUSH', JSON.stringify(semua.filter(x => !buang[x.t])));
+  return ok;
+}
+
+function fcmAkun_() {
+  const raw = PropertiesService.getScriptProperties().getProperty('NOTA_FCM_SA');
+  if (!raw) return null;
+  try { const j = JSON.parse(raw); return j.private_key && j.client_email ? j : null; } catch (e) { return null; }
+}
+
+function fcmAksesToken_(sa) {
+  const cache = CacheService.getScriptCache();
+  const c = cache.get('fcm_at');
+  if (c) return c;
+  const now = Math.floor(Date.now() / 1000);
+  const b64 = o => Utilities.base64EncodeWebSafe(JSON.stringify(o)).replace(/=+$/, '');
+  const head = b64({ alg: 'RS256', typ: 'JWT' });
+  const claim = b64({ iss: sa.client_email, scope: 'https://www.googleapis.com/auth/firebase.messaging',
+                      aud: sa.token_uri || 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 });
+  const sig = Utilities.base64EncodeWebSafe(Utilities.computeRsaSha256Signature(head + '.' + claim, sa.private_key)).replace(/=+$/, '');
+  const r = UrlFetchApp.fetch(sa.token_uri || 'https://oauth2.googleapis.com/token', {
+    method: 'post', muteHttpExceptions: true,
+    payload: { grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: head + '.' + claim + '.' + sig } });
+  const j = JSON.parse(r.getContentText() || '{}');
+  if (!j.access_token) throw new Error('Gagal masuk ke Firebase: ' + (j.error_description || j.error || r.getResponseCode()));
+  cache.put('fcm_at', j.access_token, 3000);
+  return j.access_token;
+}
+
+// Tes dari editor: kirim notifikasi ke semua HP yang sudah mengaktifkan
+function cobaNotifikasi() { return kirimPush_('🔔 Tes notifikasi Nota PGNet', 'Notifikasi dari editor Apps Script berhasil.'); }

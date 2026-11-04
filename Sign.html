@@ -83,7 +83,7 @@ function render(){
       (t.supplier?'<tr><td>'+supLabel+'</td><td>'+esc(t.supplier)+'</td></tr>':'')+
       '<tr><td>Nama Rekening</td><td>'+rekLine(t)+'</td></tr>'+
       '<tr><td>Transaksi melalui</td><td>'+esc(t.kanalText)+'</td></tr>'+
-      '<tr><td>Pembayaran</td><td><b>LUNAS</b>, '+(isMp?'dibayar melalui marketplace':'ditransfer ke rekening di atas')+'</td></tr>'+
+      '<tr><td>Pembayaran</td><td><b>LUNAS</b>, '+(isMp?'dibayar melalui marketplace':'ditransfer ke rekening di atas')+((t.bukti||[]).length?' ('+((t.bukti.length>1)?t.bukti.length+'× transfer, ':'')+'bukti terlampir di PDF)':'')+'</td></tr>'+
     '</table>'+
     '<table class="items"><tr><th class="c">No</th><th>Barang</th><th class="c">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>'+rows+
       (t.subtotal&&t.total>t.subtotal?

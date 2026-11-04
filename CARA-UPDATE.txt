@@ -1,3 +1,49 @@
+UPDATE (4 Nov 2026, b) — Akun & password per orang
+------------------------------------------------------------
+- Properti skrip: PIN_AGDA, PIN_ERIK, PIN_RAFI, PIN_YUSWAN, PIN_FIKRI, PIN_SRI (password masing-masing).
+  ADMIN_PIN tetap untuk Pak Hani (akun Admin, lihat semua).
+- Login: pilih nama → password. Agda: semua transaksi, wajib semua DIRECT.
+  Erik/Rafi/Yuswan/Fikri/Sri: hanya barang masuk atas nama sendiri (kolom D memuat namanya).
+- Notifikasi 20.00 dikirim per akun sesuai HP yang mengaktifkan.
+- Sheet: kolom baru "Dibuat Oleh" (otomatis).
+Pasang: ganti Code.gs + Admin → Versi baru; upload nota-github.zip.
+
+UPDATE (4 Nov 2026) — Notifikasi harian jam 20.00 (Firebase)
+------------------------------------------------------------
+Ikuti Panduan-Notifikasi-Nota-PGNet.pdf (untuk Kak Sri). Ringkasnya:
+1. Buat proyek Firebase "nota-pgnet" → ambil 6 nilai web config + Key pair (vapidKey) + file kunci .json.
+2. GitHub: upload nota-github.zip, lalu isi config.js (7 nilai).
+3. Apps Script: ganti Code.gs/Admin/Sign, Properti skrip NOTA_FCM_SA = isi file .json,
+   deploy Versi baru, lalu jalankan pasangPengingat() sekali.
+4. HP: buka dari link GitHub, pasang ke layar utama → tab Daftar → Aktifkan notifikasi → Tes.
+
+UPDATE (4 Nov 2026) — Ingatan hanya no. WhatsApp
+------------------------------------------------------------
+Ganti Code.gs & Admin → Terapkan → Kelola deployment → ✏ → Versi baru. Upload ulang nota-github.zip.
+- Aplikasi hanya mengingat no. WA (+ transaksi melalui), berdasarkan nama penjual atau no. rekening di SS.
+- Nama rekening, bank & no. rekening TIDAK lagi diisi dari ingatan → selalu dari screenshot transfer.
+- Pembaca SS sudah dicoba dengan 13 SS asli BCA (ke BCA, BRI, BNI, Mandiri, BSI, CIMB, SeaBank,
+  Permata, OCBC, DANA, GoPay, ShopeePay) + contoh Shopee, Tokopedia, TikTok Shop, Lazada.
+
+UPDATE (3 Nov 2026, malam) — Bukti transfer (screenshot) otomatis
+------------------------------------------------------------
+1. Apps Script: ganti Code.gs, Admin, Sign → Terapkan → Kelola deployment → ✏ → Versi baru.
+   (Kolom baru "Bukti TF" otomatis ditambahkan di sheet. Gambar disimpan di folder Drive
+    "Nota & Surat Pernyataan PGNet" → subfolder "Bukti TF".)
+2. GitHub: upload semua isi nota-github.zip (index.html, ttd.html, simulasi.html, tf-*.png, dll.).
+Cara pakai (form Barang Masuk):
+- Kotak "Bukti transfer": ketuk 📋 Tempel gambar (setelah SS / salin gambar) atau 🖼 Pilih / foto.
+  Di laptop bisa langsung Ctrl+V. Bisa lebih dari 1 (DP + pelunasan, sampai 8 gambar).
+- Aplikasi membaca otomatis: bank, nama rekening, no. rekening, jumlah → tetap bisa diedit.
+- Total dibayar = jumlah semua transfer. Ringkasan "Hasil screenshot vs aplikasi" menandai ✓ / ⚠.
+  Transfer lebih → "Sisa dana di penjual"; kurang → peringatan.
+- Nama rekening, bank & no. rekening di form terisi dari SS (kalau belum diketik manual);
+  no. WhatsApp diisi dari ingatan berdasarkan no. rekening / nama penjual.
+- PDF: halaman terakhir "LAMPIRAN · BUKTI TRANSFER" berisi daftar transfer + gambarnya.
+- Tombol hijau setelah Buat Link: "Kirim ke WA 08xx…" langsung ke nomor penjual yang diisi.
+Catatan: pembaca gambar dimuat dari internet saat pertama dipakai (±5–10 detik), berikutnya cepat.
+Kalau hasil baca salah, cukup edit kolomnya.
+
 UPDATE (3 Nov 2026) — Penjual langganan + pop-up cek data
 ------------------------------------------------------------
 1. Apps Script: ganti Code.gs & Admin → Terapkan → Kelola deployment → ✏ → Versi baru.

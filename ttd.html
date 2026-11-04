@@ -6,6 +6,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Nota & Surat Pernyataan PGNet</title>
 <meta name="theme-color" content="#188038">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<script src="config.js"></script>
 <style>
   html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   :root{--navy:#1f3a5f;--bg:#eef1f5;--card:#fff;--line:#d5dbe3;--muted:#5b6675;--ok:#1a7f4b;--err:#b42318}
@@ -84,7 +89,7 @@ function render(){
       (t.supplier?'<tr><td>'+supLabel+'</td><td>'+esc(t.supplier)+'</td></tr>':'')+
       '<tr><td>Nama Rekening</td><td>'+rekLine(t)+'</td></tr>'+
       '<tr><td>Transaksi melalui</td><td>'+esc(t.kanalText)+'</td></tr>'+
-      '<tr><td>Pembayaran</td><td><b>LUNAS</b>, '+(isMp?'dibayar melalui marketplace':'ditransfer ke rekening di atas')+'</td></tr>'+
+      '<tr><td>Pembayaran</td><td><b>LUNAS</b>, '+(isMp?'dibayar melalui marketplace':'ditransfer ke rekening di atas')+((t.bukti||[]).length?' ('+((t.bukti.length>1)?t.bukti.length+'× transfer, ':'')+'bukti terlampir di PDF)':'')+'</td></tr>'+
     '</table>'+
     '<table class="items"><tr><th class="c">No</th><th>Barang</th><th class="c">Qty</th><th class="r">Harga</th><th class="r">Subtotal</th></tr>'+rows+
       (t.subtotal&&t.total>t.subtotal?
@@ -216,7 +221,7 @@ function apiCall(fn,args){
     .then(function(j){if(!j.ok)throw new Error(j.error||'Gagal');return j.result;},function(e){throw new Error(/fetch|network|Load failed/i.test(String(e&&e.message))?'Tidak ada koneksi ke server. Cek internet lalu coba lagi.':(e&&e.message)||String(e));});
 }
 (function(){
-  var FNS=["adminBoot", "signBoot", "adminLogin", "createTrx", "listTrx", "deleteTrx", "getBM", "getChatKit", "getVideoData", "submitSignature"];
+  var FNS=["adminBoot", "signBoot", "adminLogin", "createTrx", "listTrx", "deleteTrx", "getBM", "getChatKit", "getVideoData", "submitSignature", "uploadBukti", "simpanTokenPush", "tesNotif"];
   function mk(ok,fail){var o={withSuccessHandler:function(f){return mk(f,fail);},withFailureHandler:function(f){return mk(ok,f);}};
     FNS.forEach(function(fn){o[fn]=function(){apiCall(fn,[].slice.call(arguments)).then(function(r){if(ok)ok(r);},function(e){if(fail)fail(e);else console.error(e);});};});return o;}
   window.google={script:{run:mk()}};
