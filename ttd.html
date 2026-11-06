@@ -62,6 +62,7 @@ var DATA = window.__P;
 var CFG = window.__C;
 
 var BLN=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+function hariIni(){try{return new Date().toLocaleDateString('en-CA',{timeZone:'Asia/Jakarta'});}catch(e){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}}
 function tgl(iso){var m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?(+m[3])+' '+BLN[+m[2]-1]+' '+m[1]:(iso||'');}
 function rp(n){return 'Rp '+Math.round(+n||0).toString().replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -116,7 +117,7 @@ function render(){
       :'<p>Saya telah menerima pembayaran atas barang tersebut secara <b>lunas</b> sebesar <b>'+rp(t.total)+'</b> '+(isMp?'melalui marketplace':'melalui transfer ke rekening di atas')+'.</p>')+
     '<p>Apabila di kemudian hari terbukti pernyataan ini tidak benar, saya bersedia bertanggung jawab sepenuhnya secara hukum dan membebaskan '+esc(CFG.nama)+' dari segala tuntutan pihak mana pun.</p>'+
     '<p>Demikian surat pernyataan ini saya buat dengan sadar, sebenar-benarnya, dan tanpa paksaan dari pihak mana pun.</p>'+
-    '<p class="muted">'+esc(CFG.kota)+', '+tgl(t.tanggal)+'</p>'+
+    '<p class="muted">'+esc(CFG.kota)+', '+tgl(hariIni())+'</p>'+
     '<div class="pad-wrap"><div class="pad-label">Tanda tangan Yang Membuat Pernyataan <button class="btn btn-ghost btn-sm" onclick="pads.pernyataan.clear()">Hapus</button></div><canvas id="padPernyataan"></canvas></div>'+
   '</div>'+
   '<div class="card">'+
