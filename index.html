@@ -325,7 +325,7 @@
     <!-- LIST -->
     <div id="viewList" class="hide">
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Transaksi</h3><button class="btn btn-ghost btn-sm" onclick="loadList()">↻ Muat ulang</button></div>
+        <div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Transaksi</h3><button class="btn btn-ghost btn-sm" onclick="loadList(true)">↻ Muat ulang</button></div><div class="muted" id="listSt" style="font-size:12px;min-height:16px"></div>
         <input id="q" placeholder="Cari supplier / no nota / no pesanan…" oninput="renderList()" style="margin-top:10px">
         <div id="list" style="margin-top:6px"><div class="muted">Memuat…</div></div>
       </div>
@@ -396,21 +396,35 @@ function akunInit(){
     $('pinLbl').textContent=AKUN_SEL==='Admin'?'PIN Admin':'Password '+AKUN_SEL;$('pin').focus();};});
   if(AKUN_SEL)$('pinLbl').textContent=AKUN_SEL==='Admin'?'PIN Admin':'Password '+AKUN_SEL;
 }
+function enterApp(a,token,auto){
+  PIN=token;AKUN=a&&a.nama?a:{nama:'Admin',mode:'semua'};
+  document.getElementById('login').classList.add('hide');document.getElementById('main').classList.remove('hide');
+  document.getElementById('toko').textContent='· '+CFG.nama+' · '+AKUN.nama;
+  try{sessionStorage.setItem('pin',token);if(document.getElementById('remember').checked||auto){localStorage.setItem('nota_pin',token);localStorage.setItem('nota_akun',AKUN.nama);localStorage.setItem('nota_me',JSON.stringify({nama:AKUN.nama,mode:AKUN.mode,t:token.length}));}else localStorage.removeItem('nota_pin');}catch(_){}
+  afterLogin();
+}
+function loginGagal(auto,e){
+  if(auto){try{localStorage.removeItem('nota_pin');localStorage.removeItem('nota_me');sessionStorage.removeItem('pin');}catch(_){}
+    PIN=null;document.getElementById('main').classList.add('hide');document.getElementById('login').classList.remove('hide');
+    document.getElementById('pin').value='';msg('loginMsg','err','Password sudah diganti. Masukkan password yang baru.');return;}
+  msg('loginMsg','err',e.message||e);
+}
 function doLogin(auto,token){
   var p=document.getElementById('pin').value.trim();
   if(!token){if(!AKUN_SEL){msg('loginMsg','err','Pilih akun dulu.');return;}if(!p)return;token=AKUN_SEL==='Admin'?p:AKUN_SEL+'|'+p;}
-  google.script.run.withSuccessHandler(function(a){
-    PIN=token;AKUN=a&&a.nama?a:{nama:'Admin',mode:'semua'};
-    document.getElementById('login').classList.add('hide');document.getElementById('main').classList.remove('hide');
-    document.getElementById('toko').textContent='· '+CFG.nama+' · '+AKUN.nama;
-    try{sessionStorage.setItem('pin',token);if(document.getElementById('remember').checked||auto){localStorage.setItem('nota_pin',token);localStorage.setItem('nota_akun',AKUN.nama);}else localStorage.removeItem('nota_pin');}catch(_){}
-    afterLogin();
-  }).withFailureHandler(function(e){
-    if(auto){try{localStorage.removeItem('nota_pin');sessionStorage.removeItem('pin');}catch(_){}document.getElementById('pin').value='';msg('loginMsg','err','Password sudah diganti. Masukkan password yang baru.');return;}
-    msg('loginMsg','err',e.message||e);
-  }).adminLogin(token);
+  // buka langsung dari data tersimpan (tanpa menunggu server); password tetap dicek di latar belakang
+  var me=null;if(auto){try{me=JSON.parse(localStorage.getItem('nota_me')||'null');}catch(_){}}
+  if(me&&me.nama&&me.t===token.length){
+    setTimeout(function(){
+      enterApp(me,token,true);
+      google.script.run.withSuccessHandler(function(a){if(a&&a.nama&&(a.nama!==AKUN.nama||a.mode!==AKUN.mode)){AKUN=a;document.getElementById('toko').textContent='· '+CFG.nama+' · '+a.nama;refreshBM(true);}})
+        .withFailureHandler(function(e){if(/password|pin|akun/i.test(String(e&&e.message||e)))loginGagal(true,e);}).adminLogin(token);
+    },0);
+    return;
+  }
+  google.script.run.withSuccessHandler(function(a){enterApp(a,token,auto);}).withFailureHandler(function(e){loginGagal(auto,e);}).adminLogin(token);
 }
-function logout(){try{localStorage.removeItem('nota_pin');localStorage.removeItem('nota_push');sessionStorage.removeItem('pin');}catch(_){}location.reload();}
+function logout(){try{localStorage.removeItem('nota_pin');localStorage.removeItem('nota_me');localStorage.removeItem('nota_list');localStorage.removeItem('nota_push');sessionStorage.removeItem('pin');}catch(_){}location.reload();}
 akunInit();
 try{var sp=localStorage.getItem('nota_pin')||sessionStorage.getItem('pin');if(sp){doLogin(true,sp);}}catch(_){}
 
@@ -560,43 +574,49 @@ function showResult(noNota,link,wa,supplier){
 }
 
 /* ---------- list ---------- */
-function loadList(){
-  document.getElementById('list').innerHTML='<div class="muted">Memuat…</div>';
-  google.script.run.withSuccessHandler(function(rows){LIST=rows;renderList();})
-    .withFailureHandler(function(e){document.getElementById('list').innerHTML='<div class="msg err">'+esc(e.message||e)+'</div>';}).listTrx(PIN);
+function loadList(force){
+  var have=LS.get('nota_list',null);
+  if(have&&!LIST.length){LIST=have;}
+  if(LIST.length)renderList();else document.getElementById('list').innerHTML='<div class="muted">Memuat…</div>'; // tunggu hanya kalau belum ada data sama sekali
+  listState('Memperbarui…');
+  runLatest('list','listTrx',[PIN,!!force],function(rows){LIST=rows||[];LS.set('nota_list',LIST);listState('');renderList();},
+    function(e){if(LIST.length)listState('Gagal memperbarui: '+(e.message||e)+' (menampilkan data terakhir)');else document.getElementById('list').innerHTML='<div class="msg err">'+esc(e.message||e)+'</div>';});
 }
-function renderList(){
-  var q=document.getElementById('q').value.toLowerCase();
-  var rows=LIST.filter(function(r){return !q||(r.supplier+' '+r.noNota+' '+r.noTrxMp+' '+r.kanal).toLowerCase().indexOf(q)>=0;});
-  if(!rows.length){document.getElementById('list').innerHTML='<div class="muted" style="padding:10px 0">Belum ada transaksi.</div>';return;}
-  document.getElementById('list').innerHTML=rows.map(function(r,i){
-    var ok=r.status==='Sudah TTD';
-    return '<div class="trx"><div class="top"><div><b>'+esc(r.supplier||('Invoice '+r.noTrxMp))+'</b><div class="muted">'+esc(r.noNota)+' · '+tgl(r.tanggal)+'</div>'+
+function listState(t){var el=document.getElementById('listSt');if(el&&el.textContent!==t)el.textContent=t;}
+function listRowHTML(r){
+  var ok=r.status==='Sudah TTD';
+  return '<div class="top"><div><b>'+esc(r.supplier||('Invoice '+r.noTrxMp))+'</b><div class="muted">'+esc(r.noNota)+' · '+tgl(r.tanggal)+'</div>'+
       '<div class="muted">'+esc(r.kanal)+(r.noTrxMp?' · '+esc(r.noTrxMp):'')+'</div></div>'+
       '<div style="text-align:right"><span class="badge '+(ok?'b-ok':'b-wait')+'">'+esc(r.status)+'</span><div style="font-weight:700;margin-top:4px">'+rp(r.total)+'</div>'+
       '</div></div>'+
       '<div class="actions" style="margin-top:8px">'+
-        (ok&&r.pdf?'<button class="btn btn-primary btn-sm" data-a="pdf" data-i="'+i+'">Lihat PDF</button>':'')+
-        (!ok?'<button class="btn btn-wa btn-sm" data-a="wa" data-i="'+i+'">Kirim ke WA supplier</button>':'')+
-        '<button class="btn btn-ghost btn-sm" data-a="copy" data-i="'+i+'">Salin link</button>'+
-        (!ok?'<button class="btn btn-ghost btn-sm" data-a="del" data-i="'+i+'" style="color:#b42318">Hapus</button>':'')+
-      '</div></div>';
-  }).join('');
-  Array.prototype.forEach.call(document.querySelectorAll('#list [data-a]'),function(btn){
-    btn.onclick=function(){
-      var r=rows[+btn.getAttribute('data-i')],a=btn.getAttribute('data-a');
-      if(a==='pdf')window.open(r.pdf,'_blank');
-      else if(a==='wa')openWaSupplier(r.waSupplier,r.supplier,r.noNota,r.link);
-      else if(a==='copy')copyText(r.link,btn);
-      else if(a==='del'){
-        if(!confirm('Hapus nota '+r.noNota+' ('+r.supplier+')?'))return;
-        btn.disabled=true;
-        google.script.run.withSuccessHandler(loadList).withFailureHandler(function(e){alert(e.message||e);btn.disabled=false;}).deleteTrx(PIN,r.id);
-      }
-    };
-  });
+        (ok&&r.pdf?'<button class="btn btn-primary btn-sm" data-a="pdf">Lihat PDF</button>':'')+
+        (!ok?'<button class="btn btn-wa btn-sm" data-a="wa">Kirim ke WA supplier</button>':'')+
+        '<button class="btn btn-ghost btn-sm" data-a="copy">Salin link</button>'+
+        (!ok&&!(AKUN&&AKUN.mode==='nama')?'<button class="btn btn-ghost btn-sm" data-a="del" style="color:#b42318">Hapus</button>':'')+
+      '</div>';
 }
-
+function renderList(){
+  var q=document.getElementById('q').value.toLowerCase(),box=document.getElementById('list');
+  var rows=LIST.filter(function(r){return !q||(r.supplier+' '+r.noNota+' '+r.noTrxMp+' '+r.kanal).toLowerCase().indexOf(q)>=0;});
+  if(!rows.length){var e='<div class="muted" style="padding:10px 0">Belum ada transaksi.</div>';if(box.innerHTML!==e)box.innerHTML=e;return;}
+  if(box.firstElementChild&&!box.firstElementChild.getAttribute('data-k'))box.innerHTML='';
+  // render per baris: DOM hanya ditulis kalau isinya berubah
+  reconcile(box,rows.map(function(r){return {k:r.id,tag:'div',cls:'trx',html:listRowHTML(r),fill:function(el){el._r=r;}};}));
+}
+document.addEventListener('click',function(ev){
+  var btn=ev.target.closest&&ev.target.closest('#list [data-a]');if(!btn)return;
+  var el=btn.closest('.trx'),r=el&&el._r,a=btn.getAttribute('data-a');if(!r)return;
+  if(a==='pdf')window.open(r.pdf,'_blank');
+  else if(a==='wa')openWaSupplier(r.waSupplier,r.supplier,r.noNota,r.link);
+  else if(a==='copy')copyText(r.link,btn);
+  else if(a==='del'){
+    if(!confirm('Hapus nota '+r.noNota+' ('+r.supplier+')?'))return;
+    btn.disabled=true;
+    google.script.run.withSuccessHandler(function(){LIST=LIST.filter(function(x){return x.id!==r.id;});LS.set('nota_list',LIST);renderList();loadList(true);})
+      .withFailureHandler(function(e){alert(e.message||e);btn.disabled=false;}).deleteTrx(PIN,r.id);
+  }
+});
 /* =====================================================================
    BARANG MASUK — tampilan A (kartu + lembar bawah)
    Pola cepat: data kerja di browser (localStorage), referensi di-cache,
