@@ -117,6 +117,28 @@
   .cf-r em{grid-column:2;font-style:normal;font-size:12px;color:#b06000}
   .cf-r.ch{background:#fff4dc}
   .cf-w{font-size:13px;color:#b06000;margin:-4px 0 12px;text-align:center}
+  .linkbtn{border:0;background:none;color:var(--navy);text-decoration:underline;padding:0;font:inherit;font-size:13.5px;cursor:pointer;width:auto}
+  .tfact .btn{display:flex;align-items:center;justify-content:center;gap:4px;padding:10px 8px;font-size:14px;margin:0}
+  .sh-hd{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .sh-amt{white-space:nowrap;font-size:16px;margin-top:18px}
+  .rc{border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:12px;background:#fff;font-variant-numeric:tabular-nums}
+  .rr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 12px;font-size:14.5px;border-top:1px dashed var(--line)}
+  .rc>.rr:first-child{border-top:0}
+  .rr .s{display:block;color:var(--muted);font-size:12px;word-break:break-word}
+  .rr .amt-in{width:9.5em;text-align:right;font-weight:700;padding:6px 8px;font-size:15px}
+  .rr.ok{background:#e6f4ea;color:#137333;font-weight:700}.rr.wr{background:#fff4dc;color:#8a5a00;font-weight:700}
+  .rr.nmw{background:#fff4dc;color:#8a5a00;font-size:13.5px;font-weight:600;justify-content:flex-start}
+  .ssr{align-items:flex-start}.ssl{display:flex;gap:9px;min-width:0;flex:1}
+  .ssl img{width:30px;height:42px;object-fit:cover;border-radius:4px;cursor:zoom-in;flex:none;background:#eee}
+  .ssl>div{min-width:0}.ssl b{font-size:14px}
+  .ssb{display:flex;gap:2px;flex:none}.ssb button{border:0;background:none;color:var(--muted);font-size:17px;padding:2px 5px;cursor:pointer;width:auto}
+  .tfed{padding:0 12px 10px;display:flex;flex-direction:column;gap:5px}
+  .tfed input{padding:7px 9px;font-size:14px}
+  .tfact{display:flex;gap:8px;margin-top:8px}
+  .tfact .btn{flex:1;width:auto;cursor:pointer}
+  .rksum{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:14px;margin-top:12px}
+  .rksum b{word-break:break-word}
+  .wamem{font-size:12px;font-weight:600;color:#137333;margin-left:6px}
   .tfbox{border:1.5px dashed #81c995;border-radius:12px;padding:10px 12px;margin-top:12px;background:#fbfdfb}
   .tfh{font-size:14px;margin-bottom:6px}
   .tfadd{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -323,7 +345,7 @@
   <div class="grab"></div><button class="xbtn" onclick="closeSheet()" aria-label="Tutup">×</button>
   <div id="sheetBody"></div>
   <datalist id="bankList"></datalist>
-  <button class="btn btn-primary" id="sGo" style="margin-top:14px" onclick="submitSheet()">Buat Link &amp; Kirim ke Supplier</button>
+  <button class="btn btn-primary" id="sGo" style="margin-top:14px" onclick="submitSheet()">Buat Link</button>
 </div></div>
 <!-- link siap -->
 <div id="done" class="ovl hide"><div class="dim" onclick="$('done').classList.add('hide')"></div><div class="panel" id="doneBody"></div></div>
@@ -756,30 +778,33 @@ function openSheet(pur){
   var sub=t.total,tot=dr.total||sub;
   var head=inf.kanal==='Marketplace'?((inf.platform||'Marketplace')+(inf.inv?' · Invoice '+inf.inv:'')+(inf.nama?' · Toko '+inf.nama:'')):('Nama rekening: '+inf.rek);
   $('sheetBody').innerHTML=
-    '<div class="muted">'+esc(t.pur)+' · '+esc(t.tglText)+'</div><div class="sum-name">'+esc(t.d)+'</div><div class="muted">'+esc(head)+'</div>'+
-    '<div class="sum-items">'+t.items.map(function(i){return '<div class="sum-it"><span>'+esc(i.nama)+'</span><span class="q">'+i.qty+'×</span><span class="s">'+rp(i.qty*i.harga)+'</span></div>';}).join('')+'</div>'+
-    '<div class="sumrow"><span>Subtotal barang</span><b>'+rp(sub)+'</b></div>'+
-    '<div class="tfbox" id="tfBox"></div>'+
-    '<label class="flbl">Total dibayar (sesuai transfer) *</label><input id="sTot" inputmode="numeric" value="'+fmtNum(tot)+'"><div id="sDiff" class="hint"></div>'+
-    (RK.wa?'<div class="langg">♻ <b>Penjual langganan</b> — no. WhatsApp'+(RK.kanal?' &amp; transaksi melalui':'')+' terisi dari nota '+esc(RK.noNota||'sebelumnya')+'. Rekening diisi dari screenshot transfer.</div>':'')+
+    '<div class="sh-hd"><div style="min-width:0"><div class="muted">'+esc(t.pur)+' · '+esc(t.tglText)+'</div><div class="sum-name">'+esc(t.d)+'</div>'+(inf.kanal?'<div class="muted">'+esc(head)+'</div>':'')+
+      '<button type="button" class="linkbtn" id="itTog">'+t.items.length+' barang ▾</button></div><b class="sh-amt">'+rp(sub)+'</b></div>'+
+    '<div class="sum-items" id="itList" hidden>'+t.items.map(function(i){return '<div class="sum-it"><span>'+esc(i.nama)+'</span><span class="q">'+i.qty+'×</span><span class="s">'+rp(i.qty*i.harga)+'</span></div>';}).join('')+'</div>'+
+    '<div class="rc"><div class="rr"><span>Barang</span><span>'+rp(sub)+'</span></div><div id="tfBox"></div>'+
+      '<div class="rr"><span>Total dibayar</span><input id="sTot" class="amt-in" inputmode="numeric" aria-label="Total dibayar" value="'+fmtNum(tot)+'"></div><div id="tfCmp"></div></div>'+
+    '<div class="tfact" id="tfAct"></div>'+
     (inf.kanal?'<div class="kfix">Transaksi melalui: <b>'+esc(inf.platform||'Marketplace')+'</b> <span class="muted">(otomatis)</span></div>':
       '<label class="flbl">Transaksi melalui *</label><div class="chipsel" id="kch">'+['WhatsApp','Datang Langsung'].map(function(k){return '<button type="button" class="cs'+(KSEL===k?' on':'')+'" data-k="'+k+'">'+k+'</button>';}).join('')+'</div>')+
-    (inf.kanal?'':(function(){var rk={};var nr=dr.namaRek!=null?dr.namaRek:(inf.rek||''),bk=dr.bank!=null?dr.bank:'',no=dr.noRek!=null?dr.noRek:'';
-      return '<div class="rekbox"><div class="rekttl">Rekening penjual <span class="muted">(wajib)</span>'+(rk.noRek&&dr.noRek==null?' <span class="rekauto">terisi otomatis</span>':'')+'</div>'+
+    (inf.kanal?'':(function(){var nr=dr.namaRek!=null?dr.namaRek:(inf.rek||''),bk=dr.bank!=null?dr.bank:'',no=dr.noRek!=null?dr.noRek:'';
+      return '<div class="rksum" id="rkSum" hidden><span class="muted">Rekening</span><span style="text-align:right;min-width:0"><b id="rkTxt"></b> <span class="rekauto" id="rkSS" hidden>dari SS</span></span><button type="button" class="linkbtn" onclick="RK_ED=1;rkView()">ubah</button></div>'+
+      '<div class="rekbox" id="rkF"><div class="rekttl">Rekening penjual <span class="muted">(wajib)</span></div>'+
       '<label class="flbl">Nama rekening *</label><input id="sNr" value="'+esc(nr)+'" autocomplete="off">'+
       '<div class="rek2"><div><label class="flbl">Bank *</label><input id="sBank" list="bankList" value="'+esc(bk)+'" placeholder="BCA / BRI / DANA…" autocomplete="off"></div>'+
       '<div><label class="flbl">No. rekening *</label><input id="sNo" inputmode="numeric" value="'+esc(no)+'" autocomplete="off"></div></div></div>';})())+
-    '<label class="flbl">No. WhatsApp supplier'+(RK.wa&&dr.wa==null?' <span class="rekauto">terisi otomatis</span>':'')+'</label><input id="sWa" inputmode="tel" placeholder="08xxxxxxxxxx" value="'+esc(waPre||'')+'">'+
-    '<label class="chk"><input type="checkbox" id="sOk"><span>Barang <b>sudah dites normal</b> &amp; <b>sudah ditransfer lunas</b>.</span></label>'+
+    '<label class="flbl">No. WA penjual<span class="wamem" id="waMem"'+(RK.wa&&dr.wa==null?'':' hidden')+'>♻ tersimpan</span></label><input id="sWa" inputmode="tel" placeholder="08xxxxxxxxxx" value="'+esc(waPre||'')+'">'+
+    '<label class="chk"><input type="checkbox" id="sOk"><span>Barang <b>sudah dites normal</b> &amp; <b>sudah ditransfer</b>.</span></label>'+
     '<div id="sErr"></div>';
   var save=debounce(function(){var o={kanal:KSEL,wa:$('sWa').value,total:num($('sTot').value)};if($('sNo')){o.namaRek=$('sNr').value;o.bank=$('sBank').value;o.noRek=$('sNo').value;}DRAFT[pur]=o;LS.set('nota_draft',DRAFT);},300);
-  function diff(){var v=num($('sTot').value),d=v-sub;$('sDiff').textContent=!v?'':d===0?'Sama dengan subtotal barang.':(d<0?'Selisih −'+rp(-d).slice(3)+' (ongkir/potongan) — akan tercetak di nota.':'Lebih +'+rp(d).slice(3)+' → tercetak di nota sebagai “Sisa dana di penjual”.');}
+  function diff(){tfCmp();}
   $('sTot').oninput=function(){fmtInput(this);diff();save();};$('sWa').oninput=save;diff();
   if($('sNo')){$('sNr').oninput=save;$('sBank').oninput=save;$('sNo').oninput=function(){this.value=this.value.replace(/[^\d]/g,'');save();};}
   Array.prototype.forEach.call(document.querySelectorAll('#kch .cs'),function(b){b.onclick=function(){Array.prototype.forEach.call(document.querySelectorAll('#kch .cs'),function(x){x.classList.remove('on');});b.classList.add('on');KSEL=b.getAttribute('data-k');$('sErr').className='';$('sErr').textContent='';save();};});
   if($('sNo')){['sNr','sBank','sNo'].forEach(function(id){$(id).addEventListener('input',function(){TF_TOUCH[id]=1;tfCmp();});});}
-  $('sWa').addEventListener('input',function(){TF_TOUCH.sWa=1;});
-  tfInit(t,inf);
+  $('sWa').addEventListener('input',function(){TF_TOUCH.sWa=1;$('waMem').hidden=true;});
+  $('itTog').onclick=function(){var l=$('itList');l.hidden=!l.hidden;this.textContent=t.items.length+' barang '+(l.hidden?'▾':'▴');};
+  RK_ED=0;
+  tfInit(t,inf);rkView();
   renderBlock();
   $('sheet').classList.remove('hide');requestAnimationFrame(function(){$('sheet').classList.add('open');});
 }
@@ -1079,37 +1104,46 @@ function tfApply(b){
     if(!TF_TOUCH.sBank&&b.bank&&(!$('sBank').value||TF.indexOf(b)===0))$('sBank').value=b.bank;
     if(!TF_TOUCH.sNr&&b.nama&&(!$('sNr').value||TF.indexOf(b)===0))$('sNr').value=b.nama;
   }
-  if(!TF_TOUCH.sWa&&!$('sWa').value.trim()){var m=REK['rek:'+b.noRek]||(b.nama&&REK[b.nama.toLowerCase()]);if(m&&m.wa)$('sWa').value=waShow(m.wa);}
-  tfSync();
+  if(!TF_TOUCH.sWa&&!$('sWa').value.trim()){var m=REK['rek:'+b.noRek]||(b.nama&&REK[b.nama.toLowerCase()]);if(m&&m.wa){$('sWa').value=waShow(m.wa);$('waMem').hidden=false;}
+    if(m&&!KSEL&&['WhatsApp','Datang Langsung'].indexOf(m.kanal)>=0){KSEL=m.kanal;Array.prototype.forEach.call(document.querySelectorAll('#kch .cs'),function(x){x.classList.toggle('on',x.getAttribute('data-k')===KSEL);});}}
+  rkView();tfSync();
 }
 function tfSync(){if(!TF.length||!$('sTot'))return;$('sTot').value=fmtNum(tfSum());if($('sTot').oninput)$('sTot').oninput.call($('sTot'));tfCmp();}
+var TF_ED=-1,RK_ED=0;
 function tfRender(){
   var box=$('tfBox');if(!box)return;
-  var it=TF.map(function(b,i){
-    var st=b.st==='ocr'?'⏳ Membaca gambar…':b.st==='ok'?'✓ Terbaca — cek lagi':'⚠ '+(b.err||'Tidak terbaca, isi manual');
-    var up=b.up==='done'?'':b.up==='fail'?' · <span class="tf-bad">gagal unggah</span> <button type="button" class="linkbtn" onclick="tfUpload(TF['+i+'])">Ulangi</button>':' · mengunggah…';
-    return '<div class="tfi"><div class="tfimg">'+(b.img?'<img src="'+b.img+'" alt="Bukti '+(i+1)+'" onclick="tfZoom('+i+')">':'')+'</div><div class="tff">'+
-      '<div class="tfst">Bukti '+(i+1)+' · '+st+up+'</div>'+
-      '<div class="tf2"><input data-i="'+i+'" data-k="bank" list="bankList" placeholder="Bank / aplikasi" value="'+esc(b.bank)+'"><input data-i="'+i+'" data-k="jumlah" inputmode="numeric" placeholder="Jumlah" value="'+fmtNum(b.jumlah)+'"></div>'+
-      '<input data-i="'+i+'" data-k="nama" placeholder="Nama rekening penerima" value="'+esc(b.nama)+'">'+
-      '<input data-i="'+i+'" data-k="noRek" inputmode="numeric" placeholder="No. rekening / HP" value="'+esc(b.noRek)+'"></div>'+
-      '<button type="button" class="tfx" aria-label="Hapus bukti '+(i+1)+'" onclick="tfDel('+i+')">×</button></div>';}).join('');
-  box.innerHTML='<div class="tfh"><b>Bukti transfer</b> <span class="muted">— bisa lebih dari 1 (DP, pelunasan, dll.)</span></div>'+it+
-    (TF.length<8?'<div class="tfadd" id="tfDrop" tabindex="0"><button type="button" class="btn btn-ghost btn-sm" onclick="tfPaste()">📋 Tempel gambar</button>'+
-      '<label class="btn btn-ghost btn-sm">🖼 Pilih / foto<input type="file" accept="image/*" multiple hidden onchange="tfAdd(this.files);this.value=\'\'"></label>'+
-      '<div class="hint" style="width:100%">Salin / screenshot bukti transfer lalu ketuk <b>Tempel gambar</b> (di laptop bisa <b>Ctrl+V</b>).</div></div>':'')+
-    '<div id="tfCmp"></div>';
-  Array.prototype.forEach.call(box.querySelectorAll('.tff input'),function(el){el.oninput=function(){var b=TF[+el.getAttribute('data-i')],k=el.getAttribute('data-k');
-    if(k==='jumlah'){el.value=fmtNum(num(el.value));b.jumlah=num(el.value);tfSync();}else{if(k==='noRek')el.value=el.value.replace(/[^\d]/g,'');b[k]=el.value;tfCmp();}};});
+  box.innerHTML=TF.length?TF.map(function(b,i){
+    var st=b.st==='ocr'?'⏳ membaca gambar…':b.st==='err'?'⚠ '+(b.err||'tidak terbaca, isi manual'):'';
+    var up=b.up==='fail'?'<span class="tf-bad">gagal unggah</span> <button type="button" class="linkbtn" onclick="tfUpload(TF['+i+'])">Ulangi</button>':b.up==='pending'?'mengunggah…':'';
+    var sub=[b.nama,b.noRek].filter(Boolean).join(' · ');
+    var ed=TF_ED===i||b.st==='err';
+    return '<div class="rr ssr"><div class="ssl">'+(b.img?'<img src="'+b.img+'" alt="Bukti '+(i+1)+'" onclick="tfZoom('+i+')">':'')+'<div><b>'+esc(b.bank||'Transfer')+(TF.length>1?' '+(i+1):'')+'</b>'+(b.jumlah?' · '+rp(b.jumlah):'')+
+      (sub?'<span class="s">'+esc(sub)+'</span>':'')+((st||up)?'<span class="s">'+[st,up].filter(Boolean).join(' · ')+'</span>':'')+'</div></div>'+
+      '<div class="ssb"><button type="button" aria-label="Ubah bukti '+(i+1)+'" onclick="TF_ED=TF_ED==='+i+'?-1:'+i+';tfRender()">✎</button><button type="button" aria-label="Hapus bukti '+(i+1)+'" onclick="tfDel('+i+')">×</button></div></div>'+
+      (ed?'<div class="tfed"><div class="tf2"><input data-i="'+i+'" data-k="bank" list="bankList" placeholder="Bank / aplikasi" value="'+esc(b.bank)+'"><input data-i="'+i+'" data-k="jumlah" inputmode="numeric" placeholder="Jumlah" value="'+fmtNum(b.jumlah)+'"></div>'+
+        '<input data-i="'+i+'" data-k="nama" placeholder="Nama rekening penerima" value="'+esc(b.nama)+'"><input data-i="'+i+'" data-k="noRek" inputmode="numeric" placeholder="No. rekening / HP" value="'+esc(b.noRek)+'"></div>':'');
+  }).join(''):'<div class="rr"><span>Transfer<span class="s">belum ada SS bukti transfer</span></span></div>';
+  var act=$('tfAct');
+  if(act)act.innerHTML=TF.length<8?'<button type="button" class="btn btn-ghost btn-sm" onclick="tfPaste()">📋 '+(TF.length?'+ SS lagi':'Tempel SS')+'</button>'+
+    '<label class="btn btn-ghost btn-sm">🖼 Pilih gambar<input type="file" accept="image/*" multiple hidden onchange="tfAdd(this.files);this.value=\'\'"></label>':'';
+  Array.prototype.forEach.call(box.querySelectorAll('.tfed input'),function(el){el.oninput=function(){var b=TF[+el.getAttribute('data-i')],k=el.getAttribute('data-k');
+    if(k==='jumlah'){el.value=fmtNum(num(el.value));b.jumlah=num(el.value);tfSync();}else{if(k==='noRek')el.value=el.value.replace(/[^\d]/g,'');b[k]=el.value;tfCmp();}};
+    el.onchange=function(){tfRender();};});
   tfCmp();
 }
-function tfDel(i){TF.splice(i,1);tfRender();if(TF.length)tfSync();}
+// ringkasan rekening (dari SS) — klik "ubah" untuk mengetik manual
+function rkView(){
+  if(!$('rkF'))return;var nr=$('sNr').value.trim(),bk=$('sBank').value.trim(),no=$('sNo').value.trim(),full=nr&&bk&&no;
+  $('rkTxt').textContent=[nr,bk,no].join(' · ');$('rkSS').hidden=!TF.some(function(b){return b.noRek&&b.noRek===no;});
+  $('rkSum').hidden=!full||RK_ED;$('rkF').hidden=full&&!RK_ED;
+}
+function tfDel(i){TF.splice(i,1);TF_ED=-1;tfRender();if(TF.length)tfSync();}
 function tfZoom(i){var b=TF[i];if(!b||!b.img)return;var w=document.createElement('div');w.className='tfzoom';w.innerHTML='<img src="'+b.img+'" alt="">';w.onclick=function(){w.remove();};document.body.appendChild(w);}
 function tfPaste(){
-  if(!navigator.clipboard||!navigator.clipboard.read){alert0('Tempel gambar tidak didukung di browser ini — pakai "Pilih / foto".');return;}
+  if(!navigator.clipboard||!navigator.clipboard.read){alert0('Tempel gambar tidak didukung di browser ini — pakai "Pilih gambar".');return;}
   navigator.clipboard.read().then(function(items){var ps=[];items.forEach(function(it){it.types.forEach(function(ty){if(/^image\//.test(ty))ps.push(it.getType(ty));});});
     if(!ps.length)throw new Error('Tidak ada gambar yang disalin. Salin / screenshot dulu bukti transfernya.');return Promise.all(ps);})
-    .then(tfAdd).catch(function(e){alert0(/denied|not allowed/i.test(e.message)?'Izin membaca clipboard ditolak — pakai "Pilih / foto".':e.message);});
+    .then(tfAdd).catch(function(e){alert0(/denied|not allowed/i.test(e.message)?'Izin membaca clipboard ditolak — pakai "Pilih gambar".':e.message);});
 }
 function alert0(m){var e=$('sErr');if(e){e.className='msg err';e.textContent=m;}}
 document.addEventListener('paste',function(e){
@@ -1117,24 +1151,23 @@ document.addEventListener('paste',function(e){
   var fs=[];Array.prototype.forEach.call((e.clipboardData&&e.clipboardData.items)||[],function(it){if(it.kind==='file'&&/^image\//.test(it.type))fs.push(it.getAsFile());});
   if(fs.length){e.preventDefault();tfAdd(fs);}
 });
-// ringkasan: hasil SS vs data di aplikasi
+// status di struk: total transfer vs barang + cek nama rekening vs nama supplier
+var NM_SKIP=['SP','TP','TC','TT','LZ','CV','PT','UD','TOKO','STORE','SHOP','COMP','COMPUTER','KOMPUTER','OFFICIAL','JAYA','MAJU','BANK','BCA','BRI','BNI','DANA','OVO','GOPAY','SHOPEEPAY'];
+function nmTok(x){return String(x||'').toUpperCase().split(/[^A-Z]+/).filter(function(w){return w.length>=3&&NM_SKIP.indexOf(w)<0;});}
+function nmMirip(a,b){var A=nmTok(a),B=nmTok(b);if(!A.length||!B.length)return true;
+  return A.some(function(x){return B.some(function(y){return x===y||(x.length>=4&&y.length>=4&&(x.indexOf(y)===0||y.indexOf(x)===0));});});}
 function tfCmp(){
-  var el=$('tfCmp');if(!el)return;if(!TF.length){el.innerHTML='';return;}
-  var t=TF_T,sum=tfSum(),d=sum-(t?t.total:0);
-  function norm(x){return String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
-  function uniq(k){var o=[];TF.forEach(function(b){if(b[k]&&o.indexOf(b[k])<0)o.push(b[k]);});return o;}
-  function row(lbl,ss,app,ok){return '<tr><td>'+lbl+'</td><td>'+(ss||'<i class="muted">—</i>')+'</td><td>'+(app||'<i class="muted">—</i>')+'</td><td class="'+(ok?'ok':'bad')+'">'+(ok?'✓':'⚠')+'</td></tr>';}
-  var rows=row('Jumlah','<b>'+rp(sum)+'</b>'+(TF.length>1?' <span class="muted">('+TF.length+'× TF)</span>':''),rp(t?t.total:0)+' <span class="muted">barang</span>',d===0);
+  var el=$('tfCmp');if(!el||!TF_T)return;
+  var sub=TF_T.total,v=num($('sTot')?$('sTot').value:0),d=v-sub,h='';
+  if(v)h+=d===0?'<div class="rr ok"><span>✓ Pas</span><span></span></div>':
+    d<0?'<div class="rr wr"><span>⚠ Kurang</span><span>'+rp(-d)+'</span></div>':
+        '<div class="rr wr"><span>Lebih → sisa dana di penjual</span><span>'+rp(d)+'</span></div>';
   if($('sNo')){
-    var nm=uniq('nama'),nr=uniq('noRek'),bk=uniq('bank');
-    rows+=row('Nama rek.',esc(nm.join(', ')),esc($('sNr').value),nm.length&&nm.every(function(n){return norm($('sNr').value).indexOf(norm(n))>=0||norm(n).indexOf(norm($('sNr').value))>=0;}));
-    rows+=row('No. rek.',esc(nr.join(', ')),esc($('sNo').value),nr.length&&nr.every(function(n){return norm(n)===norm($('sNo').value);}));
-    rows+=row('Bank',esc(bk.join(', ')),esc($('sBank').value),bk.length&&bk.every(function(n){return norm(n)===norm($('sBank').value);}));
-  }else if(TF_INF&&TF_INF.inv){var iv=uniq('inv');rows+=row('Invoice',esc(iv.join(', ')),esc(TF_INF.inv),iv.indexOf(TF_INF.inv)>=0);}
-  var msg=d===0?'<div class="tfok">✓ Total transfer sama dengan total barang.</div>':
-    d>0?'<div class="tfwarn">Transfer lebih <b>'+rp(d)+'</b> → tercetak di nota sebagai <b>Sisa dana di penjual</b>.</div>':
-        '<div class="tfwarn">Transfer kurang <b>'+rp(-d)+'</b> dari total barang (ongkir/potongan?) — cek lagi.</div>';
-  el.innerHTML='<div class="tfcmp"><div class="tfct">Hasil screenshot vs aplikasi</div><table><tr><th></th><th>Dari SS</th><th>Di aplikasi</th><th></th></tr>'+rows+'</table>'+msg+'</div>';
+    var sup=[TF_T.d,TF_INF&&TF_INF.nama,TF_INF&&TF_INF.rek].join(' ');
+    var nm=TF.map(function(b){return b.nama;}).filter(Boolean);if(!nm.length&&$('sNr').value.trim())nm=[$('sNr').value];
+    if(nm.some(function(n){return !nmMirip(n,sup);}))h+='<div class="rr nmw">⚠ Nama rekening beda dengan supplier — pastikan ke penjual</div>';
+  }
+  el.innerHTML=h;
 }
 
 /* ---- Notifikasi (Firebase) — hanya di aplikasi versi GitHub ---- */
